@@ -1,5 +1,6 @@
 from bot.services import access_service
 from bot.services import payment_service
+from bot.services import promo_service
 
 
 def dispatch_update(app, update):
@@ -79,6 +80,17 @@ def _parse_recovery_args_or_error(app, chat_id, args):
     return target_id, days, parts[2]
 
 
+def _parse_promo_create_args_or_error(app, chat_id, args):
+    parsed = promo_service.parse_admin_create_args(args)
+    if parsed is not None:
+        return parsed
+    app.get_telegram().send_message(
+        chat_id,
+        "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /admin_promo_create CODE TYPE VALUE LIMIT\nTYPE: free_days | discount_percent | discount_stars | fixed_price",
+    )
+    return None
+
+
 def dispatch_admin_command(app, message, command, args):
     user = message["from"]
     chat_id = user["id"]
@@ -115,6 +127,28 @@ def dispatch_admin_command(app, message, command, args):
         if limit is None:
             return None
         return app.admin_handler._render_payment_anomalies(chat_id, limit)
+
+    if command == "/admin_promo_create":
+        parsed = _parse_promo_create_args_or_error(app, chat_id, args)
+        if parsed is None:
+            return None
+        code, promo_type, value, limit = parsed
+        result = app.store.create_promo_code(code, promo_type, value, limit, admin_id=user["id"])
+        return app.get_telegram().send_message(chat_id, promo_service.format_admin_create_result(result))
+
+    if command == "/admin_promo_disable":
+        code = promo_service.normalize_promo_code(args.strip())
+        if not code:
+            return app.get_telegram().send_message(chat_id, "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /admin_promo_disable CODE")
+        result = app.store.disable_promo_code(code, admin_id=user["id"])
+        return app.get_telegram().send_message(chat_id, promo_service.format_admin_disable_result(result, code))
+
+    if command == "/admin_promo_stats":
+        code = args.strip()
+        if not code:
+            return app.get_telegram().send_message(chat_id, "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435: /admin_promo_stats CODE")
+        result = promo_service.get_promo_stats(app.store, code)
+        return app.get_telegram().send_message(chat_id, promo_service.format_promo_stats(result))
 
     if command == "/admin_recover_payment":
         parsed = _parse_recovery_args_or_error(app, chat_id, args)

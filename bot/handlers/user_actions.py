@@ -1,5 +1,6 @@
 from bot.handlers import user_render
 from bot.services import plan_service
+from bot.services import promo_service
 
 
 def _ensure_user_from_message(handler, message):
@@ -131,6 +132,23 @@ def handle_command(handler, message, command, parameter):
             plan_service.apply_plan_to_settings(settings, enabled_plans[0]),
         )
         return user_render.render_buy_balance_result(handler, user_id, result)
+
+    if command == "/promo":
+        code = (parameter or "").strip()
+        if not code:
+            return user_render.render_main_menu(
+                handler,
+                user_id,
+                notice="Использование: /promo CODE",
+                force_new=True,
+            )
+        result = promo_service.apply_user_promo(handler.bot, user_id, code)
+        return user_render.render_main_menu(
+            handler,
+            user_id,
+            notice=promo_service.format_user_promo_result(result),
+            force_new=True,
+        )
 
     if command == "/status":
         return user_render.render_main_menu(handler, user_id, force_new=True)

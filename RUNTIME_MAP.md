@@ -961,3 +961,73 @@ Safety notes:
 - analytics is read-only
 - no store writes and no audit writes
 - timezone boundaries are calculated from `appTimezone`
+
+## Promo codes map
+
+### bot/services/promo_service.py
+
+Read-only/admin/user promo helper layer for promo parsing, validation, formatting and invoice-discount context.
+
+Exports:
+
+- `normalize_promo_code(code)`
+- `normalize_promo_type(promo_type)`
+- `validate_promo_value(promo_type, value)`
+- `validate_promo_limit(limit)`
+- `parse_admin_create_args(args)`
+- `describe_promo(promo)`
+- `get_promo_stats(store, code)`
+- `format_promo_stats(result)`
+- `format_admin_create_result(result)`
+- `format_admin_disable_result(result, code)`
+- `is_discount_promo(promo)`
+- `calculate_discounted_amount(base_amount, promo)`
+- `get_pending_discount_context(store, user_id, plan, total_amount=None)`
+- `apply_user_promo(app, user_id, code)`
+- `format_user_promo_result(result)`
+
+### Store and runtime integration
+
+Current store additions:
+
+- top-level `promoCodes` state bucket
+- per-user `pendingPromoCode`
+- `create_promo_code(...)`
+- `disable_promo_code(...)`
+- `set_user_pending_promo_code(...)`
+- `clear_user_pending_promo_code(...)`
+- `redeem_free_days_promo(...)`
+- `record_payment_and_activate_subscription(..., promo_code=None)`
+
+### Current promo policy
+
+Supported promo types:
+
+- `free_days`
+- `discount_percent`
+- `discount_stars`
+- `fixed_price`
+
+Current behavior:
+
+- `/promo CODE` is user-facing
+- `free_days` promos activate subscription without creating fake payments
+- discount promos only affect the next invoice amount through `pendingPromoCode`
+- stale or invalid pending discount promos are cleared safely before invoice/pre-checkout/payment activation
+- duplicate payment behavior remains idempotent and does not re-consume promo usage
+- legacy payment payload remains supported: `subscription:{user_id}`
+- plan-aware payload remains supported: `subscription:{user_id}:{plan_id}`
+
+### Current direct admin commands
+
+- `/admin_promo_create CODE TYPE VALUE LIMIT`
+- `/admin_promo_disable CODE`
+- `/admin_promo_stats CODE`
+
+### Safety notes
+
+- no automatic promo recovery exists
+- `free_days` promo redemption writes audit but does not create payment records
+- discount promos are consumed only on successful atomic payment activation
+- existing `callback_data` remain unchanged
+

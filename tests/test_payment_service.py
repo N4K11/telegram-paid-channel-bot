@@ -5,8 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from bot.services import payment_service
 from bot.app import SubscriptionBotApp
+from bot.services import payment_service
 from config import Config
 from store_py import create_store
 
@@ -21,16 +21,36 @@ class FakeStore:
         }
         self.result = result or {"status": "processed", "payment": {}, "user": {}}
         self.calls = []
+        self.users = {}
+        self.promo_codes = {}
+        self.cleared_pending = []
 
     def get_settings(self):
         return dict(self.settings)
 
-    def record_payment_and_activate_subscription(self, user_id, payment, settings):
+    def get_user(self, user_id):
+        stored = self.users.get(int(user_id))
+        if stored is None:
+            return {"id": int(user_id), "pendingPromoCode": None}
+        return dict(stored)
+
+    def get_promo_code(self, code):
+        promo = self.promo_codes.get(str(code or "").strip().upper())
+        return dict(promo) if promo else None
+
+    def clear_user_pending_promo_code(self, user_id):
+        self.cleared_pending.append(int(user_id))
+        current = self.users.setdefault(int(user_id), {"id": int(user_id), "pendingPromoCode": None})
+        current["pendingPromoCode"] = None
+        return dict(current)
+
+    def record_payment_and_activate_subscription(self, user_id, payment, settings, promo_code=None):
         self.calls.append(
             {
                 "user_id": user_id,
                 "payment": dict(payment),
                 "settings": dict(settings),
+                "promo_code": promo_code,
             }
         )
         return dict(self.result)
@@ -138,8 +158,36 @@ class PaymentServiceTests(unittest.TestCase):
         self.assertEqual(len(store.calls), 1)
         self.assertEqual(store.calls[0]["user_id"], 123)
         self.assertEqual(store.calls[0]["payment"]["invoicePayload"], "subscription:123")
+        self.assertIsNone(store.calls[0]["promo_code"])
         app.approve_pending_request.assert_called_once_with(123)
         app.send_main_menu.assert_called_once_with(123, notice="Оплата принята! Доступ открыт.")
+
+    def test_handle_successful_payment_passes_applied_promo_code_to_atomic_store(self):
+        app, store, _ = self.make_service_app()
+        store.users[125] = {"id": 125, "pendingPromoCode": "SAVE20"}
+        store.promo_codes["SAVE20"] = {
+            "code": "SAVE20",
+            "type": "discount_percent",
+            "value": 20,
+            "maxUses": 5,
+            "enabled": True,
+            "usedBy": {},
+        }
+        message = {
+            "from": {"id": 125},
+            "successful_payment": {
+                "currency": "XTR",
+                "total_amount": 200,
+                "telegram_payment_charge_id": "charge_125",
+                "invoice_payload": "subscription:125",
+            },
+        }
+
+        result = payment_service.handle_successful_payment(app, message)
+
+        self.assertEqual(result["status"], "processed")
+        self.assertEqual(store.calls[0]["promo_code"], "SAVE20")
+        app.approve_pending_request.assert_called_once_with(125)
 
     def test_handle_successful_payment_duplicate_does_not_send_second_success(self):
         app, _, _ = self.make_service_app(result={"status": "duplicate", "payment": {}, "user": {}})

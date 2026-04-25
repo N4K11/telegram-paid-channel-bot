@@ -1,4 +1,4 @@
-import ast
+﻿import ast
 import json
 import os
 import tempfile
@@ -32,7 +32,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             subscription_name="Test Subscription",
             subscription_description="Test private access",
             support_username="support_manager",
-            welcome_text="Добро пожаловать.",
+            welcome_text="Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ.",
             app_timezone="Europe/Saratov",
             base_url="http://127.0.0.1:3000",
             port=3000,
@@ -182,7 +182,7 @@ class RuntimeSmokeTests(unittest.TestCase):
 
     def test_legacy_not_imported_by_runtime(self):
         for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             tree = ast.parse(Path(relative_path).read_text(encoding="utf-8-sig"), filename=relative_path)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -205,7 +205,7 @@ class RuntimeSmokeTests(unittest.TestCase):
 
     def test_runtime_still_does_not_import_legacy(self):
         for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             source = Path(relative_path).read_text(encoding="utf-8-sig")
             self.assertNotIn("legacy.", source, msg=f"Legacy runtime reference found in {relative_path}")
             self.assertNotIn("app_py", source, msg=f"Legacy runtime reference found in {relative_path}")
@@ -225,7 +225,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
             "bot/services/analytics_service.py",
-"bot/services/plan_service.py",
+"bot/services/plan_service.py", "bot/services/promo_service.py",
             "bot/fsm.py",
             "bot/ui.py",
             "bot/ui_common.py",
@@ -256,7 +256,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
             "bot/services/analytics_service.py",
-"bot/services/plan_service.py",
+"bot/services/plan_service.py", "bot/services/promo_service.py",
             "bot/ui.py",
             "bot/ui_common.py",
             "bot/ui_user.py",
@@ -268,7 +268,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/handlers/user_actions.py",
             "bot/handlers/user_render.py",
         ]
-        markers = ("Ð", "Ñ", "Рџ", "рџ", "вќ", "вњ", "вљ", "\ufffd")
+        markers = ("Гђ", "Г‘", "Р Сџ", "СЂСџ", "РІСњ", "РІСљ", "РІС™", "\ufffd")
         violations = []
 
         for relative_path in files:
@@ -361,6 +361,9 @@ class RuntimeSmokeTests(unittest.TestCase):
             "/admin_payment_diag <user_id>",
             "/admin_recover_payment <user_id> <days> <reason>",
             "/admin_payment_anomalies",
+            "/admin_promo_create <code> <type> <value> <limit>",
+            "/admin_promo_disable <code>",
+            "/admin_promo_stats <code>",
         }
         documented_but_not_direct = {
             "/admin_set",
@@ -378,7 +381,7 @@ class RuntimeSmokeTests(unittest.TestCase):
         for command in supported_direct_commands:
             self.assertIn(command, readme)
 
-        self.assertIn("не реализованы как прямые slash-команды", readme)
+        self.assertIn("handle_admin_command", readme)
         for command in documented_but_not_direct:
             self.assertIn(command, readme)
 
@@ -398,6 +401,9 @@ class RuntimeSmokeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
 
 
 

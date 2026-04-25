@@ -1,5 +1,10 @@
 from bot import logging_config
 from bot.services import plan_service
+from bot.services import promo_service
+
+
+STALE_PROMO_STATUSES = {"not_found", "disabled", "already_used", "max_uses_reached", "invalid_type"}
+
 
 def build_payment_payload(user_id):
     return f"subscription:{int(user_id)}"
@@ -12,6 +17,24 @@ def parse_payment_payload(payload):
     return parsed["userId"]
 
 
+def _clear_stale_pending_promo(app, user_id, promo_context):
+    if promo_context.get("status") in STALE_PROMO_STATUSES and promo_context.get("pendingCode"):
+        app.store.clear_user_pending_promo_code(user_id)
+
+
+def _resolve_invoice_amount(app, user_id, plan, total_amount=None):
+    promo_context = promo_service.get_pending_discount_context(
+        app.store,
+        user_id,
+        plan,
+        total_amount=total_amount,
+    )
+    _clear_stale_pending_promo(app, user_id, promo_context)
+    if promo_context.get("status") == "applied":
+        return promo_context.get("promo"), int(promo_context.get("finalAmount") or plan["priceStars"])
+    return None, int(promo_context.get("finalAmount") or plan["priceStars"])
+
+
 def handle_buy_access(app, user_id, chat_id=None, message_id=None, plan_id=None):
     settings = app.store.get_settings()
     plan = plan_service.resolve_purchase_plan(settings, plan_id=plan_id)
@@ -19,13 +42,14 @@ def handle_buy_access(app, user_id, chat_id=None, message_id=None, plan_id=None)
         app.send_main_menu(user_id, notice="Сейчас нет доступных тарифов.")
         return None
 
+    _, amount = _resolve_invoice_amount(app, user_id, plan)
     params = {
         "chat_id": user_id,
         "title": settings["subscriptionName"],
         "description": settings["subscriptionDescription"],
         "payload": plan_service.build_invoice_payload(settings, user_id, plan),
         "currency": "XTR",
-        "prices": [{"label": plan["title"], "amount": plan["priceStars"]}],
+        "prices": [{"label": plan["title"], "amount": amount}],
     }
     return app.get_telegram().send_invoice(params)
 
@@ -34,13 +58,23 @@ def handle_pre_checkout(app, pre_checkout_query):
     payload = pre_checkout_query.get("invoice_payload", "")
     parsed = plan_service.parse_plan_payload(payload)
     plan = None
+    is_valid = False
     if parsed:
         plan = plan_service.resolve_purchase_plan(app.store.get_settings(), parsed.get("planId"))
-    is_valid = parsed is not None and plan is not None
+    if parsed is not None and plan is not None:
+        query_user_id = ((pre_checkout_query.get("from") or {}).get("id") or parsed["userId"])
+        promo_context = promo_service.get_pending_discount_context(
+            app.store,
+            query_user_id,
+            plan,
+            total_amount=pre_checkout_query.get("total_amount"),
+        )
+        _clear_stale_pending_promo(app, query_user_id, promo_context)
+        is_valid = promo_context.get("status") != "amount_mismatch"
     return app.get_telegram().answer_pre_checkout_query(
         pre_checkout_query["id"],
         is_valid,
-        "\u041e\u0448\u0438\u0431\u043a\u0430" if not is_valid else "",
+        "Ошибка" if not is_valid else "",
     )
 
 
@@ -56,6 +90,15 @@ def handle_successful_payment(app, message):
     if not plan:
         return {"status": "plan_not_found", "payment": None, "user": None}
 
+    promo_context = promo_service.get_pending_discount_context(
+        app.store,
+        user_id,
+        plan,
+        total_amount=successful_payment["total_amount"],
+    )
+    _clear_stale_pending_promo(app, user_id, promo_context)
+    promo_code = promo_context.get("pendingCode") if promo_context.get("status") == "applied" else None
+
     payment = {
         "userId": user_id,
         "paidAt": int(app._now_ms()),
@@ -68,6 +111,7 @@ def handle_successful_payment(app, message):
         user_id,
         payment,
         plan_service.apply_plan_to_settings(settings, plan),
+        promo_code=promo_code,
     )
     if result["status"] == "duplicate":
         logging_config.log_app_event(
@@ -97,6 +141,5 @@ def handle_successful_payment(app, message):
         charge_id=payment["telegramPaymentChargeId"],
     )
     app.approve_pending_request(user_id)
-    app.send_main_menu(user_id, notice="\u041e\u043f\u043b\u0430\u0442\u0430 \u043f\u0440\u0438\u043d\u044f\u0442\u0430! \u0414\u043e\u0441\u0442\u0443\u043f \u043e\u0442\u043a\u0440\u044b\u0442.")
+    app.send_main_menu(user_id, notice="Оплата принята! Доступ открыт.")
     return result
-

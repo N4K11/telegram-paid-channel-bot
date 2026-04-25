@@ -54,6 +54,7 @@ def create_default_state():
         },
         "users": {},
         "payments": {},
+        "promoCodes": {},
         "auditLog": []
     }
 
@@ -80,6 +81,7 @@ def merge_state(state=None):
     merged["settings"] = merge_settings(incoming.get("settings"))
     merged["users"] = incoming.get("users", {}) or {}
     merged["payments"] = incoming.get("payments", {}) or {}
+    merged["promoCodes"] = incoming.get("promoCodes", {}) or {}
     merged["auditLog"] = incoming.get("auditLog", []) or []
     return merged
 
@@ -224,6 +226,7 @@ class JsonStore:
             "pendingJoinRequest": None,
             "channelMemberStatus": "unknown",
             "notes": "",
+            "pendingPromoCode": None,
             "panelMessageId": None,
             "panelMode": "user:home"
         }
@@ -368,6 +371,150 @@ class JsonStore:
             self._mutate_and_save(mutate)
         return True
 
+    def get_promo_codes(self):
+        with self.lock:
+            return copy.deepcopy(self.state.get("promoCodes", {}))
+
+    def get_promo_code(self, code):
+        normalized_code = str(code or "").strip().upper()
+        if not normalized_code:
+            return None
+        with self.lock:
+            return copy.deepcopy(self.state.get("promoCodes", {}).get(normalized_code))
+
+    def create_promo_code(self, code, promo_type, value, max_uses, admin_id=None):
+        normalized_code = str(code or "").strip().upper()
+        if not normalized_code:
+            return {"status": "invalid_code", "promo": None}
+
+        with self.lock:
+            existing = self.state["promoCodes"].get(normalized_code)
+            if existing:
+                return {"status": "exists", "promo": copy.deepcopy(existing)}
+
+            def mutate(state):
+                timestamp = now_iso()
+                state["promoCodes"][normalized_code] = {
+                    "code": normalized_code,
+                    "type": promo_type,
+                    "value": int(value),
+                    "maxUses": int(max_uses),
+                    "enabled": True,
+                    "createdAt": timestamp,
+                    "updatedAt": timestamp,
+                    "usedBy": {},
+                }
+                self._append_audit_entry(state, {
+                    "type": "promo_created",
+                    "promoCode": normalized_code,
+                    "promoType": promo_type,
+                    "value": int(value),
+                    "maxUses": int(max_uses),
+                    "adminId": int(admin_id) if admin_id is not None else None,
+                })
+
+            self._mutate_and_save(mutate)
+            return {"status": "created", "promo": copy.deepcopy(self.state["promoCodes"][normalized_code])}
+
+    def disable_promo_code(self, code, admin_id=None):
+        normalized_code = str(code or "").strip().upper()
+        if not normalized_code:
+            return {"status": "invalid_code", "promo": None}
+
+        with self.lock:
+            existing = self.state["promoCodes"].get(normalized_code)
+            if not existing:
+                return {"status": "not_found", "promo": None}
+            if not existing.get("enabled", True):
+                return {"status": "already_disabled", "promo": copy.deepcopy(existing)}
+
+            def mutate(state):
+                promo = state["promoCodes"][normalized_code]
+                promo["enabled"] = False
+                promo["updatedAt"] = now_iso()
+                self._append_audit_entry(state, {
+                    "type": "promo_disabled",
+                    "promoCode": normalized_code,
+                    "adminId": int(admin_id) if admin_id is not None else None,
+                })
+
+            self._mutate_and_save(mutate)
+            return {"status": "disabled", "promo": copy.deepcopy(self.state["promoCodes"][normalized_code])}
+
+    def set_user_pending_promo_code(self, user_id, promo_code):
+        normalized_id = str(user_id)
+        normalized_code = str(promo_code or "").strip().upper() or None
+        with self.lock:
+            if normalized_id not in self.state["users"]:
+                return None
+
+            def mutate(state):
+                user = state["users"][normalized_id]
+                user["pendingPromoCode"] = normalized_code
+                user["updatedAt"] = now_iso()
+
+            self._mutate_and_save(mutate)
+            return self._clone_user(self.state["users"][normalized_id])
+
+    def clear_user_pending_promo_code(self, user_id):
+        return self.set_user_pending_promo_code(user_id, None)
+
+    def redeem_free_days_promo(self, user_id, code):
+        normalized_id = str(user_id)
+        normalized_code = str(code or "").strip().upper()
+        with self.lock:
+            user = self.state["users"].get(normalized_id)
+            if not user:
+                return {"status": "user_not_found", "promo": None, "user": None}
+
+            promo = self.state["promoCodes"].get(normalized_code)
+            if not promo:
+                return {"status": "not_found", "promo": None, "user": self._clone_user(user)}
+            if not promo.get("enabled", True):
+                return {"status": "disabled", "promo": copy.deepcopy(promo), "user": self._clone_user(user)}
+            if promo.get("type") != "free_days":
+                return {"status": "invalid_type", "promo": copy.deepcopy(promo), "user": self._clone_user(user)}
+
+            used_by = promo.get("usedBy") or {}
+            if normalized_id in used_by:
+                return {"status": "already_used", "promo": copy.deepcopy(promo), "user": self._clone_user(user)}
+            if len(used_by) >= int(promo.get("maxUses") or 0):
+                return {"status": "max_uses_reached", "promo": copy.deepcopy(promo), "user": self._clone_user(user)}
+
+            def mutate(state):
+                current_time_ms = int(time.time() * 1000)
+                current_user = state["users"][normalized_id]
+                current_promo = state["promoCodes"][normalized_code]
+                base_time = (
+                    current_user.get("subscriptionUntil")
+                    if current_user.get("subscriptionUntil") and current_user["subscriptionUntil"] > current_time_ms
+                    else current_time_ms
+                )
+                current_user["subscriptionUntil"] = add_days(base_time, int(current_promo["value"]))
+                current_user["lastWarningAt"] = None
+                current_user["lastAccessGrantedAt"] = current_time_ms
+                current_user["updatedAt"] = now_iso()
+                current_promo.setdefault("usedBy", {})[normalized_id] = {
+                    "usedAt": now_iso(),
+                    "kind": "free_days",
+                }
+                current_promo["updatedAt"] = now_iso()
+                self._append_audit_entry(state, {
+                    "type": "promo_redeemed",
+                    "promoCode": normalized_code,
+                    "promoType": "free_days",
+                    "userId": int(normalized_id),
+                    "days": int(current_promo["value"]),
+                    "reason": "promo_code",
+                })
+
+            self._mutate_and_save(mutate)
+            return {
+                "status": "processed",
+                "promo": copy.deepcopy(self.state["promoCodes"][normalized_code]),
+                "user": self._clone_user(self.state["users"][normalized_id]),
+            }
+
     def get_payments(self):
         with self.lock:
             payments = [copy.deepcopy(item) for item in self.state["payments"].values()]
@@ -393,8 +540,9 @@ class JsonStore:
             self._mutate_and_save(mutate)
             return copy.deepcopy(self.state["payments"][payment_id])
 
-    def record_payment_and_activate_subscription(self, user_id, payment, settings):
+    def record_payment_and_activate_subscription(self, user_id, payment, settings, promo_code=None):
         normalized_id = str(user_id)
+        normalized_promo_code = str(promo_code or "").strip().upper() or None
         with self.lock:
             user = self.state["users"].get(normalized_id)
             if not user:
@@ -419,6 +567,29 @@ class JsonStore:
                     settings,
                     int(time.time() * 1000),
                 )
+                if normalized_promo_code:
+                    promo = state["promoCodes"].get(normalized_promo_code)
+                    if promo and promo.get("type") != "free_days":
+                        used_by = promo.setdefault("usedBy", {})
+                        max_uses = int(promo.get("maxUses") or 0)
+                        if normalized_id not in used_by and promo.get("enabled", True) and len(used_by) < max_uses:
+                            used_by[normalized_id] = {
+                                "usedAt": now_iso(),
+                                "kind": "payment",
+                                "chargeId": payment_id,
+                            }
+                            promo["updatedAt"] = now_iso()
+                            self._append_audit_entry(state, {
+                                "type": "promo_redeemed",
+                                "promoCode": normalized_promo_code,
+                                "promoType": promo.get("type"),
+                                "userId": int(normalized_id),
+                                "chargeId": payment_id,
+                                "amount": payment.get("totalAmount", 0),
+                                "reason": "payment",
+                            })
+                    if current_user.get("pendingPromoCode") == normalized_promo_code:
+                        current_user["pendingPromoCode"] = None
 
             self._mutate_and_save(mutate)
             return {

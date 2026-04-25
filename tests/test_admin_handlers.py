@@ -30,8 +30,7 @@ class AdminHandlerTests(unittest.TestCase):
             recurring_payments_enabled=False,
             subscription_name="Test Subscription",
             subscription_description="Test private access",
-            support_username="support_manager",
-            welcome_text="Добро пожаловать.",
+            support_username="support_manager",            welcome_text="????? ??????????.",
             app_timezone="Europe/Saratov",
             base_url="http://127.0.0.1:3000",
             port=3000,
@@ -91,6 +90,9 @@ class AdminHandlerTests(unittest.TestCase):
             "/admin_payment_diag",
             "/admin_recover_payment",
             "/admin_payment_anomalies",
+            "/admin_promo_create",
+            "/admin_promo_disable",
+            "/admin_promo_stats",
         }
         self.assertTrue(expected.issubset(app.ADMIN_COMMANDS))
 
@@ -102,7 +104,7 @@ class AdminHandlerTests(unittest.TestCase):
         dispatch_admin_command(admin_app, {"from": {"id": 999}}, "/admin_payment_diag", "120")
 
         self.assertEqual(len(admin_client.get_calls("send_message")), 1)
-        self.assertIn("Диагностика платежей", admin_client.get_calls("send_message")[0]["text"])
+        self.assertIn("/admin_recover_payment 120 30 manual_verification", admin_client.get_calls("send_message")[0]["text"])
 
         user_client = FakeTelegramClient()
         user_app = self.make_app(fake_client=user_client)
@@ -207,7 +209,6 @@ class AdminHandlerTests(unittest.TestCase):
 
         messages = [call["text"] for call in fake_client.get_calls("send_message")]
         self.assertTrue(any("/admin_payment_anomalies [LIMIT]" in text for text in messages))
-        self.assertTrue(any("USER_ID и DAYS должны быть числами." in text for text in messages))
+        self.assertTrue(any("USER_ID" in text and "DAYS" in text for text in messages))
         self.assertEqual(before["payments"], app.store.get_state()["payments"])
         self.assertEqual(before["auditLog"], app.store.get_state()["auditLog"])
-

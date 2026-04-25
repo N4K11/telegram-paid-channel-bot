@@ -2425,3 +2425,78 @@ Coverage added:
 - tariff picker preserves configured plan order
 - balance purchase path uses the selected plan
 
+# Roadmap Stage 7 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add promo codes without breaking existing payment payloads, duplicate-payment safety, UI contracts, or the current manual recovery policy.
+
+## New service
+
+Added:
+
+- `bot/services/promo_service.py`
+
+Current responsibilities:
+
+- validate admin promo create arguments
+- normalize promo codes and promo types
+- format admin stats and result messages
+- apply user promo codes safely
+- compute invoice discount context without mutating payment flow semantics
+
+## Store compatibility
+
+Backward-compatible state changes:
+
+- added top-level `promoCodes: {}`
+- added per-user optional `pendingPromoCode`
+- no existing payment fields were renamed or removed
+- no existing callback data or payload formats were changed
+
+## Payment and promo policy
+
+Current policy:
+
+- legacy payload still works: `subscription:{user_id}`
+- plan-aware payload still works: `subscription:{user_id}:{plan_id}`
+- `free_days` promo grants days directly and writes audit without fake payments
+- discount promos are stored as pending and applied only to the next invoice/payment
+- duplicate `telegramPaymentChargeId` remains idempotent and does not re-activate subscription or re-consume promo usage
+- invalid or stale pending discount promos are cleared safely before invoice or payment validation
+
+## Routing and commands
+
+Added direct admin commands:
+
+- `/admin_promo_create <code> <type> <value> <limit>`
+- `/admin_promo_disable <code>`
+- `/admin_promo_stats <code>`
+
+Added user command:
+
+- `/promo <code>`
+
+Current behavior:
+
+- admin promo commands remain direct-command only
+- user promo flow does not create fake payments
+- existing user/admin callbacks remain unchanged
+
+## Tests added
+
+Added:
+
+- `tests/test_promo_service.py`
+- `tests/test_promo_runtime.py`
+
+Coverage added:
+
+- promo service imports without `bot.app` cycle
+- invalid, disabled, reused and exhausted promo paths
+- `free_days` promo grants subscription without payment record creation
+- discount promo changes the next invoice amount
+- successful payment consumes applied promo once
+- duplicate payment does not consume promo twice
+- admin promo commands require admin and preserve runtime behavior
+

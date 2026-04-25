@@ -21,6 +21,7 @@ class SubscriptionBotApp:
         '/admin_balance', '/admin_approve', '/admin_message', '/admin_note', 
         '/admin_broadcast', '/admin_refresh_invite', '/admin_setup_channel',
         '/admin_payment_diag', '/admin_recover_payment', '/admin_payment_anomalies',
+        '/admin_promo_create', '/admin_promo_disable', '/admin_promo_stats',
         '/admin_channel_check', '/admin_health', '/admin_revenue', '/admin_activity'
     }
     ALLOWED_UPDATES = ["message", "callback_query", "pre_checkout_query", "chat_join_request", "chat_member"]
@@ -199,13 +200,13 @@ class SubscriptionBotApp:
 
         if (creds["telegram_id"] == str(user['id'])) or (user_in == creds["username"] and pass_in == creds["password"]):
             self.authorized_admin_user_ids.add(user['id'])
-            self.admin_handler._render_main(chat_id, notice="Р вЂ™РЎвЂ¦Р С•Р Т‘ Р Р†РЎвЂ№Р С—Р С•Р В»Р Р…Р ВµР Р…", force_new=True)
+            self.admin_handler._render_main(chat_id, notice="Вход в админку выполнен.", force_new=True)
         else:
-            self.get_telegram().send_message(chat_id, "РІСњРЉ Р СњР ВµР Р†Р ВµРЎР‚Р Р…РЎвЂ№Р Вµ РЎС“РЎвЂЎР ВµРЎвЂљР Р…РЎвЂ№Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р Вµ")
+            self.get_telegram().send_message(chat_id, "Имя пользователя или пароль введены неверно.")
 
     def _handle_admin_logout(self, user, chat_id):
         self.authorized_admin_user_ids.discard(user['id'])
-        self.send_main_menu(chat_id, notice="Р вЂ™РЎвЂ№ Р Р†РЎвЂ№РЎв‚¬Р В»Р С‘ Р С‘Р В· Р В°Р Т‘Р СР С‘Р Р…Р С”Р С‘")
+        self.send_main_menu(chat_id, notice="Вы вышли из админки.")
 
     def _dispatch_admin_command(self, chat_id, command):
         actions = {
@@ -214,10 +215,10 @@ class SubscriptionBotApp:
             "/admin_settings": lambda: self.admin_handler._render_settings(chat_id),
             "/admin_users": lambda: self.admin_handler._render_users(chat_id, 0),
             "/admin_help": lambda: self.admin_handler._render_main(
-                chat_id, notice="Р ВРЎРѓР С—Р С•Р В»РЎРЉР В·РЎС“Р в„–РЎвЂљР Вµ Р СР ВµР Р…РЎР‹ Р Т‘Р В»РЎРЏ РЎС“Р С—РЎР‚Р В°Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р В±Р С•РЎвЂљР С•Р С.", force_new=True
+                chat_id, notice="Используйте меню для управления ботом и пользователями.", force_new=True
             ),
             "/admin_refresh_invite": lambda: self.admin_handler._render_main(
-                chat_id, notice=f"Р РЋРЎРѓРЎвЂ№Р В»Р С”Р В° Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р В°: {self.refresh_invite_link()}"
+                chat_id, notice=f"Invite-ссылка обновлена: {self.refresh_invite_link()}"
             ),
             "/admin_broadcast": lambda: self.admin_handler._handle_broadcast_trigger(chat_id, "admin:broadcast:menu"),
         }
@@ -311,7 +312,7 @@ class SubscriptionBotApp:
 
     def grant_user_subscription(self, user_id, days):
         self.store.grant_subscription_days(user_id, days)
-        self.notify_user(user_id, f"СЂСџР‹Рѓ Р вЂ™Р В°Р С Р Р†РЎвЂ№Р Т‘Р В°Р Р… Р Т‘Р С•РЎРѓРЎвЂљРЎС“Р С— Р Р…Р В° {days} Р Т‘Р Р….")
+        self.notify_user(user_id, f"Срок вашей подписки продлён на {days} дн.")
         self.approve_pending_request(user_id)
 
     def manual_recover_payment_access(self, admin_id, user_id, days, reason):
@@ -325,7 +326,7 @@ class SubscriptionBotApp:
             days=days,
             reason=reason,
         )
-        self.notify_user(user_id, f"СЂСџР‹Рѓ Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— Р Р†Р С•РЎРѓРЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р В»Р ВµР Р… Р Р†РЎР‚РЎС“РЎвЂЎР Р…РЎС“РЎР‹ Р Р…Р В° {days} Р Т‘Р Р….")
+        self.notify_user(user_id, f"Доступ восстановлен вручную на {days} дн.")
         self.approve_pending_request(user_id)
         return user
 
@@ -334,14 +335,14 @@ class SubscriptionBotApp:
 
     def adjust_user_balance(self, user_id, amount):
         self.store.adjust_balance(user_id, amount)
-        self.notify_user(user_id, f"СЂСџвЂ™В° Р вЂ™Р В°РЎв‚¬ Р В±Р В°Р В»Р В°Р Р…РЎРѓ Р С‘Р В·Р СР ВµР Р…Р ВµР Р… Р Р…Р В° {amount} Stars.")
+        self.notify_user(user_id, f"Ваш баланс изменён на {amount} Stars.")
 
     def set_user_notes(self, user_id, notes):
         self.store.set_user_notes(user_id, notes)
 
     def send_admin_message(self, user_id, text):
         try:
-            self.get_telegram().send_message(user_id, f"РІСљвЂ°РїС‘РЏ <b>Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ Р С•РЎвЂљ Р В°Р Т‘Р СР С‘Р Р…Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂљР С•РЎР‚Р В°:</b>\n\n{text}")
+            self.get_telegram().send_message(user_id, f"Сообщение от администратора:\n\n{text}")
             return True
         except Exception as error:
             self._log_error(f"Admin message failed for {user_id}", error)
