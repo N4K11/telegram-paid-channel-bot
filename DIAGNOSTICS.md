@@ -1,4 +1,4 @@
-﻿# Stage 1 Diagnostics
+# Stage 1 Diagnostics
 
 ## Scope
 
@@ -2310,3 +2310,46 @@ Updated:
 - `DEPLOY_UBUNTU.md`
 - `RELEASE_CHECKLIST.md`
 - `RUNTIME_MAP.md`
+
+# Roadmap Stage 5 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add read-only admin analytics commands without changing payment, access, maintenance, recovery, or anomaly policies.
+
+## New service
+
+Added:
+
+- `bot/services/analytics_service.py`
+
+Current responsibilities:
+
+- build analytics snapshot from store state
+- calculate revenue for day/week/month using `appTimezone`
+- calculate unique payers for day/week/month
+- produce formatted admin reports for stats, revenue, and activity
+
+## Admin routing
+
+Added direct admin commands:
+
+- `/admin_revenue`
+- `/admin_activity`
+
+Kept existing direct admin command:
+
+- `/admin_stats`
+
+Routing path:
+
+- `bot/dispatcher.py` -> admin handler render methods
+- `bot/handlers/admin_render.py` -> analytics service formatters
+
+## Safety notes
+
+- analytics is read-only
+- no payment totals or user state are modified
+- empty db case is handled
+- duplicate payment policy is unchanged
+- manual recovery and payment anomalies remain unchanged

@@ -66,6 +66,8 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - `/admin_broadcast`
 - `/admin_channel_check`
 - `/admin_health`
+- `/admin_revenue`
+- `/admin_activity`
 - `/admin_payment_diag <user_id>`
 - `/admin_recover_payment <user_id> <days> <reason>`
 - `/admin_payment_anomalies`
@@ -95,6 +97,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - редактирование текстовых шаблонов.
 - диагностика спорных payment-cases по пользователю;
 - список пользователей с подозрительными payment-cases;
+- read-only analytics по доходу и активности;
 - ручное восстановление доступа без создания fake payment records и без изменения totals оплаты.
 
 ## Команды, которые были задокументированы раньше, но сейчас не реализованы как прямые slash-команды

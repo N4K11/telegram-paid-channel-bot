@@ -21,7 +21,7 @@ class SubscriptionBotApp:
         '/admin_balance', '/admin_approve', '/admin_message', '/admin_note', 
         '/admin_broadcast', '/admin_refresh_invite', '/admin_setup_channel',
         '/admin_payment_diag', '/admin_recover_payment', '/admin_payment_anomalies',
-        '/admin_channel_check', '/admin_health'
+        '/admin_channel_check', '/admin_health', '/admin_revenue', '/admin_activity'
     }
     ALLOWED_UPDATES = ["message", "callback_query", "pre_checkout_query", "chat_join_request", "chat_member"]
     JOIN_REQUEST_TTL_MS = 7 * 24 * 3600 * 1000

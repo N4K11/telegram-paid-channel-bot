@@ -1,4 +1,4 @@
-﻿# Runtime Map
+# Runtime Map
 
 ## Official entrypoint
 
@@ -891,3 +891,43 @@ Safety notes:
 - validates the target backup before restore
 - creates a safety backup of current `db.json` in `data/backups/`
 - restores through a temporary file path and then replaces `db.json`
+
+## Admin analytics map
+
+### bot/services/analytics_service.py
+
+Read-only analytics layer for admin reporting.
+
+Exports:
+
+- `get_analytics_snapshot(app, now_ms=None)`
+- `format_stats_summary(snapshot)`
+- `format_revenue_report(snapshot)`
+- `format_activity_report(snapshot)`
+
+Current direct admin commands:
+
+- `/admin_stats`
+- `/admin_revenue`
+- `/admin_activity`
+
+Current routing:
+
+- `bot/dispatcher.py` -> `AdminHandler._render_stats(...)`
+- `bot/dispatcher.py` -> `AdminHandler._render_revenue(...)`
+- `bot/dispatcher.py` -> `AdminHandler._render_activity(...)`
+- `bot/handlers/admin_render.py` -> `analytics_service`
+
+Current analytics fields:
+
+- base dashboard stats from store
+- total/day/week/month revenue
+- unique payers for day/week/month
+- top users by total paid amount
+- last payment timestamp
+
+Safety notes:
+
+- analytics is read-only
+- no store writes and no audit writes
+- timezone boundaries are calculated from `appTimezone`

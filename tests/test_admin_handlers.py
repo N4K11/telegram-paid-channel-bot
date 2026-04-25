@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import tempfile
 import unittest
 from pathlib import Path
@@ -81,9 +81,13 @@ class AdminHandlerTests(unittest.TestCase):
         app = self.make_app()
         expected = {
             "/admin",
+            "/admin_channel_check",
             "/admin_health",
             "/admin_login",
             "/admin_logout",
+            "/admin_stats",
+            "/admin_revenue",
+            "/admin_activity",
             "/admin_payment_diag",
             "/admin_recover_payment",
             "/admin_payment_anomalies",

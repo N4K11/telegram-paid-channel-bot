@@ -1,5 +1,6 @@
 import time
 
+from bot.services import analytics_service
 from bot.services import channel_diagnostics_service
 from bot.services import health_service
 from bot.ui import UIProvider
@@ -72,21 +73,22 @@ def render_user_details(handler, user_id, target_id, notice=None):
 
 
 def render_stats(handler, user_id):
-    stats = handler.bot.get_dashboard_stats_extended()
-    text = [
-        "<b>📊 Расширенная статистика</b>",
-        f"Всего юзеров: <b>{stats['totalUsers']}</b>",
-        f"Активных подписок: <b>{stats['activeSubscriptions']}</b>",
-        f"Истекших: <b>{stats['expiredSubscriptions']}</b>",
-        "",
-        f"Доход (всего): <b>{stats['revenueStars']} ⭐</b>",
-        f"Доход (30 дней): <b>{stats.get('revenueMonth', 0)} ⭐</b>",
-        "",
-        f"В канале: <b>{stats['channelMembers']}</b>",
-        f"Ожидают: <b>{stats['pendingJoinRequests']}</b>",
-    ]
+    snapshot = analytics_service.get_analytics_snapshot(handler.bot)
+    text = analytics_service.format_stats_summary(snapshot)
     markup = {"inline_keyboard": [[{"text": "🔙 Назад", "callback_data": "admin:menu"}]]}
-    handler.bot.render_panel(user_id, "\n".join(text), markup, "admin:stats")
+    handler.bot.render_panel(user_id, text, markup, "admin:stats")
+
+
+def render_revenue(handler, user_id):
+    snapshot = analytics_service.get_analytics_snapshot(handler.bot)
+    text = analytics_service.format_revenue_report(snapshot)
+    handler.bot.get_telegram().send_message(user_id, text)
+
+
+def render_activity(handler, user_id):
+    snapshot = analytics_service.get_analytics_snapshot(handler.bot)
+    text = analytics_service.format_activity_report(snapshot)
+    handler.bot.get_telegram().send_message(user_id, text)
 
 
 def render_channel_diagnostics(handler, user_id):
@@ -121,5 +123,6 @@ def render_payment_anomalies(handler, user_id, limit=20, notice=None):
 
 
 def render_input_request(handler, user_id, text):
-    markup = {"inline_keyboard": [[{"text": "❌ Отмена", "callback_data": "admin:menu"}]]}
+    markup = {"inline_keyboard": [[{"text": "🔙 Назад", "callback_data": "admin:menu"}]]}
     handler.bot.render_panel(user_id, text, markup, "admin:input_request")
+

@@ -1,4 +1,4 @@
-import ast
+﻿import ast
 import unittest
 from pathlib import Path
 
@@ -44,6 +44,7 @@ class RuntimeShellTests(unittest.TestCase):
             'bot/services/payment_service.py',
             'bot/services/access_service.py',
             'bot/services/maintenance_service.py',
+            'bot/services/analytics_service.py',
             'bot/handlers/admin.py',
             'bot/handlers/admin_actions.py',
             'bot/handlers/admin_render.py',
@@ -86,6 +87,7 @@ class RuntimeShellTests(unittest.TestCase):
             'bot/services/payment_service.py',
             'bot/services/access_service.py',
             'bot/services/maintenance_service.py',
+            'bot/services/analytics_service.py',
             'bot/handlers/admin.py',
             'bot/handlers/admin_actions.py',
             'bot/handlers/admin_render.py',
@@ -127,3 +129,4 @@ class RuntimeShellTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

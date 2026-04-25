@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import json
 import os
 import tempfile
@@ -181,7 +181,7 @@ class RuntimeSmokeTests(unittest.TestCase):
                     self.assertNotEqual(node.module, "app_py", msg=f"Legacy import found in {path}")
 
     def test_legacy_not_imported_by_runtime(self):
-        for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+        for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             tree = ast.parse(Path(relative_path).read_text(encoding="utf-8-sig"), filename=relative_path)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -203,7 +203,7 @@ class RuntimeSmokeTests(unittest.TestCase):
                 self.assertNotEqual(node.module, "bot.app")
 
     def test_runtime_still_does_not_import_legacy(self):
-        for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+        for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             source = Path(relative_path).read_text(encoding="utf-8-sig")
             self.assertNotIn("legacy.", source, msg=f"Legacy runtime reference found in {relative_path}")
             self.assertNotIn("app_py", source, msg=f"Legacy runtime reference found in {relative_path}")
@@ -222,6 +222,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/payment_service.py",
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
+            "bot/services/analytics_service.py",
             "bot/fsm.py",
             "bot/ui.py",
             "bot/ui_common.py",
@@ -251,6 +252,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/payment_service.py",
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
+            "bot/services/analytics_service.py",
             "bot/ui.py",
             "bot/ui_common.py",
             "bot/ui_user.py",
@@ -340,10 +342,13 @@ class RuntimeSmokeTests(unittest.TestCase):
         readme = Path("README.md").read_text(encoding="utf-8-sig")
         supported_direct_commands = {
             "/admin",
+            "/admin_channel_check",
             "/admin_health",
             "/admin_login <username> <password>",
             "/admin_logout",
             "/admin_stats",
+            "/admin_revenue",
+            "/admin_activity",
             "/admin_settings",
             "/admin_users",
             "/admin_help",
@@ -389,6 +394,8 @@ class RuntimeSmokeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
 
 
 

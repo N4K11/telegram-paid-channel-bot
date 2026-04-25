@@ -48,6 +48,12 @@ class AdminHandler:
     def _render_stats(self, user_id):
         return admin_render.render_stats(self, user_id)
 
+    def _render_revenue(self, user_id):
+        return admin_render.render_revenue(self, user_id)
+
+    def _render_activity(self, user_id):
+        return admin_render.render_activity(self, user_id)
+
     def _render_channel_diagnostics(self, user_id):
         return admin_render.render_channel_diagnostics(self, user_id)
 
