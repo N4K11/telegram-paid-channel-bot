@@ -1,4 +1,4 @@
-# Release Checklist
+﻿# Release Checklist
 
 ## Before deploy
 
@@ -12,6 +12,7 @@
 - [ ] Join requests are enabled if approve flow is required.
 - [ ] Admin Telegram id is configured, or admin password is intentionally configured.
 - [ ] Backup exists.
+- [ ] Backup is verified with ./scripts/verify_backup.sh.
 - [ ] `data/db.json` is writable by the runtime user.
 
 ## Manual smoke after deploy
@@ -31,6 +32,7 @@
 - [ ] Expired test user can be revoked.
 - [ ] Payment anomalies command works.
 - [ ] Backup command or backup procedure is tested.
+- [ ] Restore procedure is reviewed or tested on a non-production copy.
 
 ## Rollback
 
@@ -40,3 +42,4 @@
 - [ ] Run tests.
 - [ ] Start the service again.
 - [ ] Check logs after restart.
+

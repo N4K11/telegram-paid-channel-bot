@@ -869,3 +869,25 @@ Safety notes:
 - Telegram token patterns are redacted
 - private `t.me/+...` invite links are redacted
 - logging remains stdout/stderr-friendly for `systemd` + `journalctl`
+
+## Backup/restore hardening map
+
+### scripts/backup_db.sh
+
+- creates `data/backups/` if missing
+- copies `data/db.json` to a timestamped backup file
+- validates the copied backup as JSON
+- never deletes the current `db.json`
+
+### scripts/verify_backup.sh
+
+- read-only verification of a backup file
+- checks JSON validity
+- checks basic top-level store structure: `meta`, `settings`, `users`, `payments`, `auditLog`
+
+### scripts/restore_db.sh
+
+- requires `./scripts/restore_db.sh <backup-file> --yes`
+- validates the target backup before restore
+- creates a safety backup of current `db.json` in `data/backups/`
+- restores through a temporary file path and then replaces `db.json`

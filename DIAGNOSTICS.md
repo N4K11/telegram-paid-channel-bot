@@ -2277,3 +2277,36 @@ Structured logs redact:
 - private invite links of the form `https://t.me/+...`
 
 This keeps `journalctl` production-safe without removing useful error context.
+
+# Roadmap Stage 4 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: harden operational backup and restore procedures for `data/db.json` without touching runtime logic or store schema.
+
+## New scripts
+
+Added:
+
+- `scripts/restore_db.sh`
+- `scripts/verify_backup.sh`
+
+Updated:
+
+- `scripts/backup_db.sh`
+
+## Operational guarantees
+
+- backups are copied into `data/backups/`
+- backup script validates copied JSON before reporting success
+- restore requires explicit `--yes`
+- restore creates a pre-restore safety backup of current `db.json`
+- verify is read-only and checks both JSON validity and basic store structure
+
+## Documentation
+
+Updated:
+
+- `DEPLOY_UBUNTU.md`
+- `RELEASE_CHECKLIST.md`
+- `RUNTIME_MAP.md`

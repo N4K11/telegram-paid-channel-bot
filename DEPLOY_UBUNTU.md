@@ -1,4 +1,4 @@
-# Ubuntu Deployment
+﻿# Ubuntu Deployment
 
 ## 1. Server prerequisites
 
@@ -170,11 +170,16 @@ Manual backup command:
 cp data/db.json data/db.backup.$(date +%F-%H%M%S).json
 ```
 
-If you use the helper script from this repository:
+Preferred helper scripts from this repository:
 
 ```bash
-sh scripts/backup_db.sh
+./scripts/backup_db.sh
+ls -lah data/backups
+./scripts/verify_backup.sh data/backups/<backup-file>.json
 ```
+
+`backup_db.sh` creates a timestamped backup in `data/backups/` and validates that the copied file is valid JSON.
+`verify_backup.sh` is read-only and checks both JSON validity and the basic store structure.
 
 ## 13. Rollback procedure
 
@@ -190,7 +195,8 @@ Example:
 
 ```bash
 sudo systemctl stop private-channel-bot
-cp data/db.backup.YYYYmmdd-HHMMSS.json data/db.json
+./scripts/verify_backup.sh data/backups/<backup-file>.json
+./scripts/restore_db.sh data/backups/<backup-file>.json --yes
 source .venv/bin/activate
 python -m compileall .
 python -m unittest discover -s tests -p "test_*.py" -v
@@ -213,7 +219,7 @@ Example:
 
 ```bash
 sudo systemctl stop private-channel-bot
-cp data/db.json data/db.backup.$(date +%F-%H%M%S).json
+./scripts/backup_db.sh
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m compileall .
@@ -283,3 +289,4 @@ Before going live, verify all of the following:
 13. `/admin` works.
 14. A test Stars payment is verified in a safe environment.
 15. Maintenance loop runs without repeated errors.
+
