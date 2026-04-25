@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "createdAt": "2026-01-01T00:00:00Z",
+    "updatedAt": "2026-01-01T00:00:00Z",
+    "lastUpdateId": 0,
+    "botInfo": null,
+    "joinInviteLink": "",
+    "joinInviteLinkCreatedAt": null
+  },
+  "settings": {
+    "subscriptionPriceStars": 250,
+    "subscriptionDurationDays": 30,
+    "warningDays": 3,
+    "recurringPaymentsEnabled": false,
+    "subscriptionName": "Доступ в приватный канал",
+    "subscriptionDescription": "Оплата доступа к приватному Telegram-каналу",
+    "supportUsername": "",
+    "welcomeText": "Оформите подписку, и бот выдаст доступ в приватный канал.",
+    "channelInviteLink": "",
+    "botTokenOverride": "",
+    "channelId": "",
+    "appTimezone": "Europe/Saratov",
+    "adminUsername": "admin",
+    "adminPassword": "",
+    "autoCreateInviteLink": null,
+    "pollTimeoutSeconds": 25,
+    "serviceCheckIntervalMs": 60000,
+    "messageTemplates": {
+      "paymentReceived": "Оплата получена. Подписка активна до <b>{{subscriptionUntil}}</b>.",
+      "joinApproved": "Запрос на вступление в канал одобрен.",
+      "joinPending": "Запрос на вступление получен. Как только оплата будет подтверждена, я одобрю его автоматически.",
+      "subscriptionExpiring": "Подписка скоро закончится: <b>{{subscriptionUntil}}</b>. Продлите доступ заранее.",
+      "subscriptionExpired": "Срок подписки истёк. Доступ к приватному каналу отключён.",
+      "noSubscription": "Сначала нужно оформить или продлить подписку.",
+      "noInviteLink": "Ссылка на канал пока не настроена. Напишите администратору.",
+      "adminGrant": "Администратор выдал вам подписку до <b>{{subscriptionUntil}}</b>.",
+      "adminRevoke": "Доступ к приватному каналу был отключён администратором.",
+      "support": "По вопросам оплаты напишите {{supportMention}}.",
+      "joinInstructions": "Ваша подписка активна. Вступайте в канал по ссылке:\n{{inviteLink}}\n\nПосле отправки заявки бот одобрит её автоматически."
+    }
+  },
+  "users": {},
+  "payments": {},
+  "auditLog": []
+}

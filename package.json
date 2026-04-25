@@ -1,0 +1,11 @@
+﻿{
+  "name": "telegram-paid-channel-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Legacy npm stub. Production runtime is Python via main.py. Historical Node files are stored in legacy/.",
+  "scripts": {
+    "start": "node -e \"console.error('Primary runtime is Python. Use: python main.py'); process.exit(1)\"",
+    "check": "node -e \"console.error('Primary checks are Python. Use: python -m compileall . && python -m unittest discover -s tests -p \\\"test_*.py\\\" -v'); process.exit(1)\""
+  },
+  "license": "MIT"
+}

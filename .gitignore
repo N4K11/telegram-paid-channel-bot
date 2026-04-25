@@ -1,0 +1,12 @@
+.env
+data/db.json
+data/db.json.tmp
+data/backups/
+*.log
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+*.tmp
+*.bak
+codex_staged_prompts_private_channel_bot.md
