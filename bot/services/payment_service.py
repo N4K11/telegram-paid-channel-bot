@@ -141,5 +141,9 @@ def handle_successful_payment(app, message):
         charge_id=payment["telegramPaymentChargeId"],
     )
     app.approve_pending_request(user_id)
+    if result.get("rewardedReferrerId"):
+        referrer = app.store.get_user(result["rewardedReferrerId"])
+        if referrer and referrer.get("pendingJoinRequest"):
+            app.approve_pending_request(result["rewardedReferrerId"])
     app.send_main_menu(user_id, notice="Оплата принята! Доступ открыт.")
     return result

@@ -2500,3 +2500,68 @@ Coverage added:
 - duplicate payment does not consume promo twice
 - admin promo commands require admin and preserve runtime behavior
 
+# Roadmap Stage 8 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add a minimal referral system without changing existing Telegram UI contracts, payment payloads, or duplicate-payment guarantees.
+
+## New service
+
+Added:
+
+- `bot/services/referral_service.py`
+
+Current responsibilities:
+
+- parse `/start ref_<code>` payloads
+- validate referral codes
+- attach referral only once for a user
+- format referral start notices
+
+## Store compatibility
+
+Backward-compatible user fields:
+
+- `referralCode`
+- `referredBy`
+- `referralRewards`
+
+No existing top-level store buckets, payment payloads, callback data or admin flows were removed.
+
+## Referral policy
+
+Current policy:
+
+- each user gets a generated `referralCode`
+- self-referral is forbidden
+- `referredBy` is saved only once
+- reward is granted only after the referred user's first successful payment
+- reward type is `+3 days` to the referrer subscription
+- duplicate `telegramPaymentChargeId` remains idempotent and does not issue the reward twice
+- reward writes audit entries: `referral_attached` and `referral_reward_granted`
+
+## Runtime integration
+
+Updated paths:
+
+- `bot/handlers/user_actions.py` handles `/start ref_<code>`
+- `store_py.py.record_payment_and_activate_subscription(...)` applies referral reward atomically with payment activation
+- `bot/services/payment_service.py` preserves existing successful payment flow and only optionally approves the referrer if they already have a pending join request
+
+## Tests added
+
+Added:
+
+- `tests/test_referral_service.py`
+- `tests/test_referral_runtime.py`
+
+Coverage added:
+
+- referral code generation
+- self-referral rejection
+- one-time referral attachment
+- reward after first payment
+- duplicate payment does not reward twice
+- audit log entries are written
+

@@ -7,6 +7,8 @@ import time
 
 from utils_py import add_days, now_iso
 
+REFERRAL_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
 
 def create_default_state():
     timestamp = now_iso()
@@ -206,6 +208,23 @@ class JsonStore:
         user["lastAccessGrantedAt"] = current_time_ms
         user["updatedAt"] = now_iso()
 
+    def _generate_unique_referral_code(self, state, length=6):
+        existing = {
+            str(user.get("referralCode") or "").strip().upper()
+            for user in state["users"].values()
+            if user.get("referralCode")
+        }
+        while True:
+            code = "".join(random.choice(REFERRAL_CODE_ALPHABET) for _ in range(length))
+            if code not in existing:
+                return code
+
+    @staticmethod
+    def _has_referral_reward_for_user(referrer, referred_user_id):
+        referred_user_id = int(referred_user_id)
+        rewards = referrer.get("referralRewards") or []
+        return any(int(reward.get("referredUserId") or 0) == referred_user_id for reward in rewards)
+
     def _default_user(self, user_id):
         return {
             "id": int(user_id),
@@ -227,6 +246,9 @@ class JsonStore:
             "channelMemberStatus": "unknown",
             "notes": "",
             "pendingPromoCode": None,
+            "referralCode": None,
+            "referredBy": None,
+            "referralRewards": [],
             "panelMessageId": None,
             "panelMode": "user:home"
         }
@@ -290,11 +312,71 @@ class JsonStore:
                 current["firstName"] = telegram_user.get("first_name") or telegram_user.get("firstName") or current.get("firstName") or ""
                 current["lastName"] = telegram_user.get("last_name") or telegram_user.get("lastName") or current.get("lastName") or ""
                 current["languageCode"] = telegram_user.get("language_code") or telegram_user.get("languageCode") or current.get("languageCode") or ""
+                current["referredBy"] = current.get("referredBy")
+                current["referralRewards"] = copy.deepcopy(current.get("referralRewards") or [])
+                current["referralCode"] = current.get("referralCode") or self._generate_unique_referral_code(state)
                 current["updatedAt"] = now_iso()
                 state["users"][user_id] = current
 
             self._mutate_and_save(mutate)
             return self._clone_user(self.state["users"][user_id])
+
+    def find_user_by_referral_code(self, referral_code):
+        normalized_code = str(referral_code or "").strip().upper()
+        if not normalized_code:
+            return None
+        with self.lock:
+            for user in self.state["users"].values():
+                if str(user.get("referralCode") or "").strip().upper() == normalized_code:
+                    return self._clone_user(user)
+        return None
+
+    def attach_referral(self, user_id, referral_code):
+        normalized_id = str(user_id)
+        normalized_code = str(referral_code or "").strip().upper()
+        if not normalized_code:
+            return {"status": "invalid_code", "user": None, "referrer": None}
+
+        with self.lock:
+            user = self.state["users"].get(normalized_id)
+            if not user:
+                return {"status": "user_not_found", "user": None, "referrer": None}
+            if user.get("referredBy"):
+                referrer = self.state["users"].get(str(user.get("referredBy")))
+                return {
+                    "status": "already_set",
+                    "user": self._clone_user(user),
+                    "referrer": self._clone_user(referrer),
+                }
+
+            referrer_id = None
+            for existing_id, existing_user in self.state["users"].items():
+                if str(existing_user.get("referralCode") or "").strip().upper() == normalized_code:
+                    referrer_id = existing_id
+                    break
+
+            if referrer_id is None:
+                return {"status": "not_found", "user": self._clone_user(user), "referrer": None}
+            if referrer_id == normalized_id:
+                return {"status": "self_referral", "user": self._clone_user(user), "referrer": self._clone_user(user)}
+
+            def mutate(state):
+                current_user = state["users"][normalized_id]
+                current_user["referredBy"] = int(referrer_id)
+                current_user["updatedAt"] = now_iso()
+                self._append_audit_entry(state, {
+                    "type": "referral_attached",
+                    "userId": int(normalized_id),
+                    "referredBy": int(referrer_id),
+                    "referralCode": normalized_code,
+                })
+
+            self._mutate_and_save(mutate)
+            return {
+                "status": "attached",
+                "user": self._clone_user(self.state["users"][normalized_id]),
+                "referrer": self._clone_user(self.state["users"][referrer_id]),
+            }
 
     def get_user(self, user_id):
         with self.lock:
@@ -557,7 +639,10 @@ class JsonStore:
                     "user": self._clone_user(user),
                 }
 
+            rewarded_referrer = {"id": None}
+
             def mutate(state):
+                current_time_ms = int(time.time() * 1000)
                 current_user = state["users"][normalized_id]
                 state["payments"][payment_id] = payment
                 self._apply_record_payment_to_user(current_user, payment)
@@ -565,7 +650,7 @@ class JsonStore:
                     current_user,
                     payment,
                     settings,
-                    int(time.time() * 1000),
+                    current_time_ms,
                 )
                 if normalized_promo_code:
                     promo = state["promoCodes"].get(normalized_promo_code)
@@ -591,11 +676,44 @@ class JsonStore:
                     if current_user.get("pendingPromoCode") == normalized_promo_code:
                         current_user["pendingPromoCode"] = None
 
+                referred_by = current_user.get("referredBy")
+                if referred_by:
+                    referrer = state["users"].get(str(referred_by))
+                    if referrer and not self._has_referral_reward_for_user(referrer, normalized_id):
+                        reward_days = 3
+                        base_time = (
+                            referrer.get("subscriptionUntil")
+                            if referrer.get("subscriptionUntil") and referrer["subscriptionUntil"] > current_time_ms
+                            else current_time_ms
+                        )
+                        referrer["subscriptionUntil"] = add_days(base_time, reward_days)
+                        referrer["lastWarningAt"] = None
+                        referrer["lastAccessGrantedAt"] = current_time_ms
+                        referrer["updatedAt"] = now_iso()
+                        rewards = referrer.setdefault("referralRewards", [])
+                        rewards.insert(0, {
+                            "referredUserId": int(normalized_id),
+                            "rewardType": "days",
+                            "days": reward_days,
+                            "chargeId": payment_id,
+                            "createdAt": now_iso(),
+                        })
+                        referrer["referralRewards"] = rewards[:100]
+                        self._append_audit_entry(state, {
+                            "type": "referral_reward_granted",
+                            "referrerId": int(referred_by),
+                            "referredUserId": int(normalized_id),
+                            "days": reward_days,
+                            "chargeId": payment_id,
+                        })
+                        rewarded_referrer["id"] = int(referred_by)
+
             self._mutate_and_save(mutate)
             return {
                 "status": "processed",
                 "payment": copy.deepcopy(self.state["payments"][payment_id]),
                 "user": self._clone_user(self.state["users"][normalized_id]),
+                "rewardedReferrerId": rewarded_referrer["id"],
             }
 
     def get_user_payment_diagnostics(self, user_id, current_time_ms=None):

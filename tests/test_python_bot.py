@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import json
 import os
 import tempfile
@@ -182,7 +182,7 @@ class RuntimeSmokeTests(unittest.TestCase):
 
     def test_legacy_not_imported_by_runtime(self):
         for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/services/referral_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             tree = ast.parse(Path(relative_path).read_text(encoding="utf-8-sig"), filename=relative_path)
             for node in ast.walk(tree):
                 if isinstance(node, ast.Import):
@@ -205,7 +205,7 @@ class RuntimeSmokeTests(unittest.TestCase):
 
     def test_runtime_still_does_not_import_legacy(self):
         for relative_path in ["main.py", "bot/app.py", "bot/dispatcher.py", "bot/compat_helpers.py", "bot/services/payment_service.py", "bot/services/access_service.py", "bot/services/maintenance_service.py", "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/services/referral_service.py", "bot/handlers/admin.py", "bot/handlers/admin_actions.py", "bot/handlers/admin_render.py", "bot/handlers/user.py", "bot/handlers/user_actions.py", "bot/handlers/user_render.py", "bot/ui.py", "bot/ui_common.py", "bot/ui_user.py", "bot/ui_admin.py"]:
             source = Path(relative_path).read_text(encoding="utf-8-sig")
             self.assertNotIn("legacy.", source, msg=f"Legacy runtime reference found in {relative_path}")
             self.assertNotIn("app_py", source, msg=f"Legacy runtime reference found in {relative_path}")
@@ -225,7 +225,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
             "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/services/promo_service.py",
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/services/referral_service.py",
             "bot/fsm.py",
             "bot/ui.py",
             "bot/ui_common.py",
@@ -256,7 +256,7 @@ class RuntimeSmokeTests(unittest.TestCase):
             "bot/services/access_service.py",
             "bot/services/maintenance_service.py",
             "bot/services/analytics_service.py",
-"bot/services/plan_service.py", "bot/services/promo_service.py",
+"bot/services/plan_service.py", "bot/services/promo_service.py", "bot/services/referral_service.py",
             "bot/ui.py",
             "bot/ui_common.py",
             "bot/ui_user.py",

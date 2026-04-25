@@ -189,6 +189,28 @@ class PaymentServiceTests(unittest.TestCase):
         self.assertEqual(store.calls[0]["promo_code"], "SAVE20")
         app.approve_pending_request.assert_called_once_with(125)
 
+    def test_handle_successful_payment_approves_referrer_only_when_pending_request_exists(self):
+        app, store, _ = self.make_service_app(
+            result={"status": "processed", "payment": {}, "user": {}, "rewardedReferrerId": 777}
+        )
+        store.users[777] = {"id": 777, "pendingJoinRequest": {"chatId": -100123}}
+        message = {
+            "from": {"id": 126},
+            "successful_payment": {
+                "currency": "XTR",
+                "total_amount": 250,
+                "telegram_payment_charge_id": "charge_126",
+                "invoice_payload": "subscription:126",
+            },
+        }
+
+        payment_service.handle_successful_payment(app, message)
+
+        self.assertEqual(
+            app.approve_pending_request.call_args_list,
+            [unittest.mock.call(126), unittest.mock.call(777)],
+        )
+
     def test_handle_successful_payment_duplicate_does_not_send_second_success(self):
         app, _, _ = self.make_service_app(result={"status": "duplicate", "payment": {}, "user": {}})
         message = {

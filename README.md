@@ -1,4 +1,4 @@
-﻿# Telegram Paid Channel Bot
+# Telegram Paid Channel Bot
 
 Python-Р±РѕС‚ РґР»СЏ РїСЂРѕРґР°Р¶Рё РґРѕСЃС‚СѓРїР° РІ РїСЂРёРІР°С‚РЅС‹Р№ Telegram-РєР°РЅР°Р».
 
@@ -51,6 +51,10 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - `/status`
 - `/help`
 - `/promo <code>`
+
+Referral start payload:
+
+- `/start ref_<code>`
 
 ## РљРѕРјР°РЅРґС‹ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
 

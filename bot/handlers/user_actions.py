@@ -1,6 +1,7 @@
 from bot.handlers import user_render
 from bot.services import plan_service
 from bot.services import promo_service
+from bot.services import referral_service
 
 
 def _ensure_user_from_message(handler, message):
@@ -99,7 +100,13 @@ def handle_command(handler, message, command, parameter):
     if command == "/start":
         if parameter == "buy":
             return handler.bot.send_invoice(user_id)
-        return user_render.render_main_menu(handler, user_id, force_new=True)
+        referral_result = referral_service.apply_start_referral(handler.bot, user_id, parameter)
+        return user_render.render_main_menu(
+            handler,
+            user_id,
+            notice=referral_service.format_start_referral_result(referral_result),
+            force_new=True,
+        )
 
     if command == "/buy":
         settings = handler.store.get_settings()

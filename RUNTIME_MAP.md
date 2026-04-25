@@ -1031,3 +1031,41 @@ Current behavior:
 - discount promos are consumed only on successful atomic payment activation
 - existing `callback_data` remain unchanged
 
+## Referral system map
+
+### bot/services/referral_service.py
+
+Referral helper layer for start-payload parsing and one-time referral attachment.
+
+Exports:
+
+- `normalize_referral_code(code)`
+- `parse_start_referral_parameter(parameter)`
+- `apply_start_referral(app, user_id, parameter)`
+- `format_start_referral_result(result)`
+
+### Store integration
+
+Current user fields:
+
+- `referralCode`
+- `referredBy`
+- `referralRewards`
+
+Current store methods:
+
+- `find_user_by_referral_code(referral_code)`
+- `attach_referral(user_id, referral_code)`
+- `record_payment_and_activate_subscription(..., promo_code=None)` now also applies one-time referral reward atomically
+
+### Current referral policy
+
+- referral start payload is `/start ref_<code>`
+- self-referral is rejected
+- referral is stored only once per invited user
+- reward is granted only after the invited user's first successful payment
+- reward is `+3 days` for the referrer
+- duplicate payment does not grant the referral reward twice
+- referral reward is written to audit log
+- no existing `callback_data` or payment payloads were changed
+
