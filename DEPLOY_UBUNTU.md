@@ -1,4 +1,4 @@
-﻿# Ubuntu Deployment
+# Ubuntu Deployment
 
 ## 1. Server prerequisites
 
@@ -290,3 +290,12 @@ Before going live, verify all of the following:
 14. A test Stars payment is verified in a safe environment.
 15. Maintenance loop runs without repeated errors.
 
+## 14a. One-command update helper
+
+If you want the standard update flow in one command, use:
+
+```bash
+./scripts/deploy.sh
+```
+
+`deploy.sh` performs `git pull --ff-only`, installs requirements, runs `compileall`, runs the full unittest suite, creates a backup, and only then restarts `private-channel-bot`. If any check fails, restart is not executed.

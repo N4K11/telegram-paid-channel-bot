@@ -1089,3 +1089,24 @@ Current store methods:
 ### CI contract tests
 
 - `tests/test_ci_config.py`
+
+## Deploy automation map
+
+### Script
+
+- `scripts/deploy.sh`
+
+### Current deploy contract
+
+- uses `bash` with `set -euo pipefail`
+- runs `git pull --ff-only`
+- activates `.venv`
+- installs `requirements.txt`
+- runs `python -m compileall .`
+- runs `python -m unittest discover -s tests -p "test_*.py" -v`
+- runs `./scripts/backup_db.sh`
+- only then restarts `private-channel-bot`
+
+### Deploy contract tests
+
+- `tests/test_deploy_script.py`

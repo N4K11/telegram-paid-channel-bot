@@ -2608,3 +2608,49 @@ Coverage added:
 - unittest step exists
 - no secrets are referenced in workflow
 - no deploy automation is present in workflow
+
+# Roadmap Stage 10 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add a single safe deployment script for the Ubuntu server without changing runtime logic or introducing auto-deploy from CI.
+
+## Added
+
+- `scripts/deploy.sh`
+- `tests/test_deploy_script.py`
+
+## Deploy script contract
+
+Current script:
+
+- uses `#!/usr/bin/env bash`
+- enables `set -euo pipefail`
+- runs `git pull --ff-only`
+- activates `.venv`
+- installs `requirements.txt`
+- runs `python -m compileall .`
+- runs `python -m unittest discover -s tests -p "test_*.py" -v`
+- runs `./scripts/backup_db.sh`
+- only then restarts `private-channel-bot`
+- shows `systemctl status` after restart
+
+## Safety
+
+Current deploy automation intentionally:
+
+- does not contain secrets
+- does not use Windows paths
+- does not restart the service if tests fail
+- does not skip backup before restart
+- does not change Telegram runtime behavior
+
+## Tests added
+
+Coverage added:
+
+- `set -euo pipefail` exists
+- tests happen before restart
+- backup happens before restart
+- no secrets in script
+- no Windows paths in script
