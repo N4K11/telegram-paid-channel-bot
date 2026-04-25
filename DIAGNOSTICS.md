@@ -2654,3 +2654,42 @@ Coverage added:
 - backup happens before restart
 - no secrets in script
 - no Windows paths in script
+
+# Roadmap Stage 11 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: introduce a storage abstraction and SQLite backend without switching the active runtime away from JSON.
+
+## Added
+
+- `storage/__init__.py`
+- `storage/base.py`
+- `storage/json_store.py`
+- `storage/sqlite_store.py`
+- `storage/migrations.py`
+- `tests/test_store_contract.py`
+
+## Current implementation
+
+- `SQLiteStore` subclasses the existing `store_py.JsonStore` and overrides only persistence internals (`_ensure_file`, `_load`, `_save_unlocked`)
+- this keeps store business logic identical between JSON and SQLite backends
+- SQLite connection lifecycle is explicitly closed after each operation to avoid Windows file-handle leaks during tests
+- migration helper creates and validates a JSON backup before copying state into SQLite
+
+## Runtime status
+
+- active runtime still imports `create_store` from `store_py`
+- no production switch to SQLite is performed in this stage
+- JSON remains the default backend until a later migration stage
+
+## Tests added
+
+Coverage added:
+
+- contract tests for default state on both backends
+- settings persistence on both backends
+- user ensure/update persistence on both backends
+- payment + subscription idempotency on both backends
+- grant subscription persistence on both backends
+- JSON -> SQLite migration backup/state preservation

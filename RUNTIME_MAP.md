@@ -1110,3 +1110,24 @@ Current store methods:
 ### Deploy contract tests
 
 - `tests/test_deploy_script.py`
+
+## SQLite storage abstraction map
+
+### New storage package
+
+- `storage/base.py` defines the shared backend protocol used by contract tests.
+- `storage/json_store.py` re-exports the current JSON-backed `JsonStore` without changing runtime behavior.
+- `storage/sqlite_store.py` adds a SQLite-backed store that reuses existing store logic and only swaps persistence reads/writes.
+- `storage/migrations.py` contains backup-first JSON -> SQLite migration helpers.
+
+### Current runtime policy
+
+- active runtime still uses `store_py.create_store(...)` and remains JSON-backed
+- SQLite backend is introduced for staged migration only
+- JSON store is not removed and remains the production default
+- migration helper creates a JSON backup before writing SQLite state
+
+### Contract coverage
+
+- `tests/test_store_contract.py` runs the same core state/settings/user/payment/subscription scenarios against JSON and SQLite backends
+- contract suite also verifies JSON -> SQLite migration preserves core state and creates a backup
