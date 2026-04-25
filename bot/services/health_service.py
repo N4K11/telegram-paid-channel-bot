@@ -1,3 +1,4 @@
+from bot import logging_config
 import os
 import re
 import tempfile
@@ -104,6 +105,11 @@ def get_health_status(app):
     backup_dir = os.path.join(os.path.dirname(app.store.file_path) or ".", "backups")
     runtime_error = _serialize_runtime_error(app)
 
+    if bot_info_error:
+        logging_config.log_app_event(app, "health_check_failed", check="bot_info", error=bot_info_error)
+    if writable["error"]:
+        logging_config.log_app_event(app, "health_check_failed", check="store_writable", error=writable["error"])
+
     return {
         "uptimeMs": max(0, now_ms - int(getattr(app, "started_at_ms", now_ms))),
         "botInfo": bot_info,
@@ -176,3 +182,4 @@ def format_health_status(status, time_zone="UTC"):
             )
 
     return "\n".join(lines)
+

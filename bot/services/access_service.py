@@ -1,4 +1,6 @@
-﻿def get_join_link(app, user_id=None):
+from bot import logging_config
+
+def get_join_link(app, user_id=None):
     return app.store.get_effective_invite_link(app.config.channel_invite_link)
 
 
@@ -42,6 +44,13 @@ def approve_pending_request(app, user_id, force=False):
             app.get_telegram().approve_chat_join_request(channel_id, user_id)
             app.store.clear_user_pending_join_request(user_id)
             app.store.set_user_channel_member_status(user_id, "member")
+            logging_config.log_app_event(
+                app,
+                "join_request_approved",
+                user_id=user_id,
+                channel_id=channel_id,
+                forced=force,
+            )
             return True
         except Exception as error:
             app._log_error(f"Approval failed for {user_id}", error)
@@ -57,6 +66,12 @@ def decline_pending_join_request(app, user_id):
     try:
         app.get_telegram().decline_chat_join_request(app.get_effective_system_settings()["channelId"], user_id)
         app.store.clear_user_pending_join_request(user_id)
+        logging_config.log_app_event(
+            app,
+            "join_request_declined",
+            user_id=user_id,
+            channel_id=app.get_effective_system_settings()["channelId"],
+        )
         return True
     except Exception as error:
         app._log_error(f"Decline join request failed for {user_id}", error)
@@ -82,7 +97,14 @@ def prune_expired_pending_join_requests(app, now_ms=None, users=None):
 
 
 def revoke_user_subscription(app, user_id, reason):
-    app.store.revoke_subscription(user_id, reason)
+    revoked_user = app.store.revoke_subscription(user_id, reason)
+    if revoked_user:
+        logging_config.log_app_event(
+            app,
+            "subscription_revoked",
+            user_id=user_id,
+            reason=reason,
+        )
     try:
         channel_id = app.get_effective_system_settings()["channelId"]
         app.get_telegram().ban_chat_member(channel_id, user_id)
@@ -119,3 +141,4 @@ def send_join_link(app, user_id, callback_query=None):
         ]
     }
     app.render_panel(user_id, text, markup, "user:join", callback_query=callback_query)
+

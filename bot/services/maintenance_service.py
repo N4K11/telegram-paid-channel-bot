@@ -1,4 +1,6 @@
-﻿from bot.services import access_service
+from bot import logging_config
+
+from bot.services import access_service
 from utils_py import format_datetime
 
 
@@ -80,8 +82,20 @@ def run_subscription_maintenance(app, now_ms=None):
 
     settings = app.store.get_settings()
     warning_ms = warning_window_ms(settings)
-    for user in app.store.list_users():
+    users = app.store.list_users()
+    errors = 0
+    logging_config.log_app_event(app, "maintenance_started", users=len(users), now_ms=int(now_ms))
+    for user in users:
         try:
             process_maintenance_user(app, user, settings, now_ms=now_ms, warning_ms=warning_ms)
         except Exception as error:
+            errors += 1
             app._log_error(f"Maintenance user error for {user.get('id', 'unknown')}", error)
+    logging_config.log_app_event(
+        app,
+        "maintenance_finished",
+        users=len(users),
+        errors=errors,
+        now_ms=int(now_ms),
+    )
+

@@ -2216,3 +2216,64 @@ Routing path:
 - healthcheck is read-only for store state
 - writable probe creates and removes a temp file in the store directory
 - formatted output redacts token-like strings and private invite links from runtime errors
+
+# Roadmap Stage 3 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: replace ad-hoc runtime `print` error output with a centralized logging layer that stays readable in `journalctl` and redacts secrets.
+
+## New logging layer
+
+Added module:
+
+- `bot/logging_config.py`
+
+Exposed helpers:
+
+- `sanitize_text`
+- `configure_logging`
+- `get_logger`
+- `format_event`
+- `log_event`
+- `classify_error_event`
+
+## Runtime wiring
+
+`SubscriptionBotApp` now owns `self.logger` and exposes:
+
+- `_log_error(context, error)`
+- `log_event(event, **fields)`
+
+`_log_error(...)` still preserves runtime behavior, but now emits structured log events instead of direct `print(...)`.
+
+## Current event coverage
+
+Added structured events in existing runtime paths:
+
+- `payment_received`
+- `payment_duplicate`
+- `subscription_activated`
+- `join_request_approved`
+- `join_request_declined`
+- `subscription_revoked`
+- `maintenance_started`
+- `maintenance_finished`
+- `admin_recovery_used`
+- `channel_diagnostics_failed`
+- `health_check_failed`
+
+Generic error classification currently maps to:
+
+- `telegram_api_error`
+- `store_save_error`
+- fallback `runtime_error`
+
+## Redaction policy
+
+Structured logs redact:
+
+- Telegram token-like strings
+- private invite links of the form `https://t.me/+...`
+
+This keeps `journalctl` production-safe without removing useful error context.

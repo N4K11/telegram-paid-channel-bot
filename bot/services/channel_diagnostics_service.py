@@ -1,3 +1,5 @@
+from bot import logging_config
+
 import re
 
 
@@ -72,6 +74,12 @@ def run_channel_diagnostics(app):
         result["error"] = _sanitize_error_text(error)
         result["errorKind"] = "get_me_failed"
         result["warnings"].append("Не удалось получить информацию о боте через Telegram API.")
+        app.log_event(
+            "channel_diagnostics_failed",
+            error_kind=result["errorKind"],
+            channel_id=result["channelId"],
+            error=result["error"],
+        )
         return result
 
     try:
@@ -87,6 +95,12 @@ def run_channel_diagnostics(app):
             result["warnings"].append("CHANNEL_ID невалиден или канал не найден.")
         else:
             result["warnings"].append("Telegram API вернул ошибку при проверке доступа к каналу.")
+        app.log_event(
+            "channel_diagnostics_failed",
+            error_kind=result["errorKind"],
+            channel_id=result["channelId"],
+            error=result["error"],
+        )
         return result
 
     result["channelAccessOk"] = True
@@ -195,3 +209,4 @@ def format_channel_diagnostics(result):
         lines.extend(f"• {note}" for note in notes)
 
     return "\n".join(lines)
+

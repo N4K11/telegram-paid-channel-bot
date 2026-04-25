@@ -1,8 +1,10 @@
+import logging
 import threading
 import time
 from telegram_client import TelegramClient
 from bot import compat_helpers
 from bot import dispatcher
+from bot import logging_config
 from bot.fsm import FSM
 from bot.services import access_service
 from bot.services import maintenance_service
@@ -31,6 +33,7 @@ class SubscriptionBotApp:
         self.telegram = self._create_telegram_client(config.bot_token, config.telegram_api_base_url)
         self.current_bot_token = config.bot_token
         self.current_api_base_url = config.telegram_api_base_url
+        self.logger = logging_config.get_logger("runtime")
 
         # --- Runtime state ---
         self.is_stopping = False
@@ -91,7 +94,16 @@ class SubscriptionBotApp:
             "error": str(error or "").strip(),
             "loggedAt": int(self._now_ms()),
         }
-        print(f"{context}: {error}", flush=True)
+        logging_config.log_event(
+            self.logger,
+            logging_config.classify_error_event(context, error),
+            level=logging.ERROR,
+            context=context,
+            error=error,
+        )
+
+    def log_event(self, event, level=logging.INFO, **fields):
+        logging_config.log_event(self.logger, event, level=level, **fields)
 
     def _ensure_user_context(self, user_info):
         if not user_info:
@@ -306,6 +318,13 @@ class SubscriptionBotApp:
         user = self.store.manual_payment_recovery(admin_id, user_id, days, reason)
         if not user:
             return None
+        self.log_event(
+            "admin_recovery_used",
+            admin_id=admin_id,
+            user_id=user_id,
+            days=days,
+            reason=reason,
+        )
         self.notify_user(user_id, f"СЂСџР‹Рѓ Р вЂќР С•РЎРѓРЎвЂљРЎС“Р С— Р Р†Р С•РЎРѓРЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р В»Р ВµР Р… Р Р†РЎР‚РЎС“РЎвЂЎР Р…РЎС“РЎР‹ Р Р…Р В° {days} Р Т‘Р Р….")
         self.approve_pending_request(user_id)
         return user

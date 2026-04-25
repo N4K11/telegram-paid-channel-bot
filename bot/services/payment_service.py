@@ -1,4 +1,6 @@
-﻿def build_payment_payload(user_id):
+from bot import logging_config
+
+def build_payment_payload(user_id):
     return f"subscription:{int(user_id)}"
 
 
@@ -56,9 +58,34 @@ def handle_successful_payment(app, message):
         payment,
         app.store.get_settings(),
     )
+    if result["status"] == "duplicate":
+        logging_config.log_app_event(
+            app,
+            "payment_duplicate",
+            user_id=user_id,
+            charge_id=payment["telegramPaymentChargeId"],
+            amount=payment["totalAmount"],
+        )
+        return result
     if result["status"] != "processed":
         return result
 
+    logging_config.log_app_event(
+        app,
+        "payment_received",
+        user_id=user_id,
+        charge_id=payment["telegramPaymentChargeId"],
+        amount=payment["totalAmount"],
+        currency=payment["currency"],
+    )
+    logging_config.log_app_event(
+        app,
+        "subscription_activated",
+        user_id=user_id,
+        subscription_until=result["user"].get("subscriptionUntil"),
+        charge_id=payment["telegramPaymentChargeId"],
+    )
     app.approve_pending_request(user_id)
     app.send_main_menu(user_id, notice="\u041e\u043f\u043b\u0430\u0442\u0430 \u043f\u0440\u0438\u043d\u044f\u0442\u0430! \u0414\u043e\u0441\u0442\u0443\u043f \u043e\u0442\u043a\u0440\u044b\u0442.")
     return result
+

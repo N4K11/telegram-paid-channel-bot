@@ -826,3 +826,46 @@ Safety notes:
 - healthcheck does not mutate store state
 - writable probe uses a temporary file and removes it immediately
 - formatted output redacts token-like strings and private invite links from error text
+
+## Logging map
+
+### bot/logging_config.py
+
+Centralized runtime logging layer for the active bot runtime.
+
+Exported helpers:
+
+- `sanitize_text`
+- `configure_logging`
+- `get_logger`
+- `format_event`
+- `log_event`
+- `classify_error_event`
+
+Current runtime wiring:
+
+- `SubscriptionBotApp` owns `self.logger`
+- `_log_error(...)` writes structured error events instead of raw `print`
+- services emit domain events through `app.log_event(...)`
+
+Current event names in active runtime:
+
+- `payment_received`
+- `payment_duplicate`
+- `subscription_activated`
+- `join_request_approved`
+- `join_request_declined`
+- `subscription_revoked`
+- `maintenance_started`
+- `maintenance_finished`
+- `admin_recovery_used`
+- `telegram_api_error`
+- `store_save_error`
+- `channel_diagnostics_failed`
+- `health_check_failed`
+
+Safety notes:
+
+- Telegram token patterns are redacted
+- private `t.me/+...` invite links are redacted
+- logging remains stdout/stderr-friendly for `systemd` + `journalctl`
