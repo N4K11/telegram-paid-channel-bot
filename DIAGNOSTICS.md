@@ -2565,3 +2565,46 @@ Coverage added:
 - duplicate payment does not reward twice
 - audit log entries are written
 
+
+# Roadmap Stage 9 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add minimal GitHub Actions CI so every push and pull request automatically runs the same compile and unittest checks already required locally.
+
+## Added
+
+- `.github/workflows/tests.yml`
+- `tests/test_ci_config.py`
+
+## Workflow contract
+
+Current workflow:
+
+- triggers on `push`
+- triggers on `pull_request`
+- uses `actions/checkout@v4`
+- uses `actions/setup-python@v5`
+- pins Python `3.11`
+- runs `pip install -r requirements.txt`
+- runs `python -m compileall .`
+- runs `python -m unittest discover -s tests -p "test_*.py" -v`
+
+## Safety
+
+Current CI stage intentionally does not:
+
+- deploy to Ubuntu
+- restart services
+- run backup/restore scripts
+- use repository or Telegram secrets
+
+## Tests added
+
+Coverage added:
+
+- workflow file exists
+- compileall step exists
+- unittest step exists
+- no secrets are referenced in workflow
+- no deploy automation is present in workflow

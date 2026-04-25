@@ -1069,3 +1069,23 @@ Current store methods:
 - referral reward is written to audit log
 - no existing `callback_data` or payment payloads were changed
 
+
+## GitHub Actions CI map
+
+### Workflow
+
+- `.github/workflows/tests.yml`
+
+### Current CI contract
+
+- runs on `push` and `pull_request`
+- uses `ubuntu-latest`
+- sets up Python `3.11`
+- installs `requirements.txt`
+- runs `python -m compileall .`
+- runs `python -m unittest discover -s tests -p "test_*.py" -v`
+- does not contain deploy or server restart steps
+
+### CI contract tests
+
+- `tests/test_ci_config.py`
