@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +17,7 @@ class FakeStore:
             "subscriptionName": "Test Subscription",
             "subscriptionDescription": "Test private access",
             "subscriptionPriceStars": 250,
+            "subscriptionDurationDays": 30,
         }
         self.result = result or {"status": "processed", "payment": {}, "user": {}}
         self.calls = []
@@ -202,7 +203,7 @@ class PaymentServiceTests(unittest.TestCase):
 
         with patch.object(payment_service, "handle_buy_access", return_value="invoice_result") as buy_mock:
             self.assertEqual(app.send_invoice(321), "invoice_result")
-        buy_mock.assert_called_once_with(app, 321)
+        buy_mock.assert_called_once_with(app, 321, plan_id=None)
 
         with patch.object(payment_service, "handle_pre_checkout", return_value="pre_checkout_result") as pre_mock:
             self.assertEqual(app.handle_pre_checkout_query({"id": "pq"}), "pre_checkout_result")

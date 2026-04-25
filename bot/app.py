@@ -283,8 +283,8 @@ class SubscriptionBotApp:
 
     # --- Domain-service wrappers ---
 
-    def send_invoice(self, user_id):
-        return payment_service.handle_buy_access(self, user_id)
+    def send_invoice(self, user_id, plan_id=None):
+        return payment_service.handle_buy_access(self, user_id, plan_id=plan_id)
 
     def handle_pre_checkout_query(self, pq):
         return dispatcher.dispatch_pre_checkout(self, pq)

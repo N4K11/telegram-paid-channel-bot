@@ -102,7 +102,7 @@ The invite/join/access-facing methods above are thin wrappers in `bot/app.py` an
 Payment orchestration notes:
 
 - invoice creation lives in `bot/services/payment_service.py` through `handle_buy_access(...)`
-- payment payload contract is still `subscription:{user_id}`
+- payment payload contract accepts legacy `subscription:{user_id}` and plan-aware `subscription:{user_id}:{plan_id}`; legacy payload remains valid fallback
 - `handle_pre_checkout_query` validates payload through `parse_payment_payload(...)`
 - `handle_successful_payment` delegates into `bot/services/payment_service.py`
 - `bot/services/payment_service.py` uses `store_py.JsonStore.record_payment_and_activate_subscription(...)`
@@ -190,9 +190,9 @@ This module remains the public user handler facade used by the runtime shell and
 ### Contract notes
 
 - user slash commands are unchanged: `/start`, `/buy`, `/buy_balance`, `/status`, `/help`
-- user callback data are unchanged: `buy`, `join`, `user:help`, `buy_balance`, `panel:main`
+- existing user callback data are unchanged: `buy`, `join`, `user:help`, `buy_balance`, `panel:main`; multi-plan routing adds `buy:plan:{id}` and `buy_balance:plan:{id}` for the picker flow
 - help path remains callback-driven, while support remains a URL button in the main menu
-- buy path still delegates into the payment flow
+- buy path still delegates into the payment flow and now opens a tariff picker when multiple enabled plans are configured
 - join path still delegates into the access flow
 
 ## bot/ui.py facade map
@@ -203,6 +203,7 @@ This module remains the public UI builder facade used by the runtime shell, hand
 
 - `UIProvider.get_main_menu`
 - `UIProvider.get_user_help`
+- `UIProvider.get_plan_picker`
 - `UIProvider.get_admin_main`
 - `UIProvider.get_admin_settings`
 - `UIProvider.get_admin_users`
@@ -229,6 +230,7 @@ The same function names are also re-exported at module level from `bot.ui`.
 - button order is unchanged
 - message text is unchanged
 - UI contract stability is now covered by `tests/test_ui_contracts.py`
+- multi-plan picker layout and tariff order are covered by `tests/test_multi_plan_payment.py`
 
 ## bot/services/payment_service.py map
 
@@ -244,10 +246,38 @@ This module contains the extracted payment orchestration for the active runtime 
 
 ### Contract notes
 
-- payload remains `subscription:{user_id}`
+- payload accepts legacy `subscription:{user_id}` and plan-aware `subscription:{user_id}:{plan_id}` while keeping legacy compatibility
 - invalid payloads are rejected safely in pre-checkout
 - duplicate successful payments return without a second success UI
 - successful payments still use the atomic store method
+
+## bot/services/plan_service.py map
+
+This module contains tariff normalization and payload compatibility helpers for the active runtime and does not import `bot.app`.
+
+### Exported functions
+
+- `get_all_plans`
+- `get_enabled_plans`
+- `has_multiple_enabled_plans`
+- `get_default_plan`
+- `get_plan`
+- `build_plan_payload`
+- `parse_plan_payload`
+- `resolve_purchase_plan`
+- `build_invoice_payload`
+- `apply_plan_to_settings`
+- `format_plan_duration`
+- `format_plan_label`
+
+### Contract notes
+
+- settings may now contain backward-compatible `plans` entries with `id`, `title`, `priceStars`, `durationDays`, `enabled`, and optional lifetime semantics
+- legacy `subscriptionPriceStars` and `subscriptionDurationDays` remain the fallback when `plans` are not configured
+- payload parsing accepts both legacy and plan-aware forms
+- disabled plans are not sellable through invoice or balance flows
+- plan order in settings is preserved in the user tariff picker
+- lifetime plans are mapped into store settings through `isLifetimePlan` without changing the top-level `db.json` schema
 
 ## bot/services/access_service.py map
 

@@ -22,6 +22,7 @@ def create_default_state():
         "settings": {
             "subscriptionPriceStars": 250,
             "subscriptionDurationDays": 30,
+            "plans": [],
             "warningDays": 3,
             "recurringPaymentsEnabled": False,
             "subscriptionName": "Доступ в приватный канал",
@@ -62,6 +63,7 @@ def merge_settings(settings=None):
     incoming = settings or {}
     merged = copy.deepcopy(defaults)
     merged.update(incoming)
+    merged["plans"] = copy.deepcopy(incoming.get("plans", defaults["plans"]))
     merged["messageTemplates"] = {
         **defaults["messageTemplates"],
         **incoming.get("messageTemplates", {})
@@ -181,7 +183,9 @@ class JsonStore:
         user["updatedAt"] = now_iso()
 
     def _apply_subscription_activation(self, user, payment, settings, current_time_ms):
-        if settings.get("recurringPaymentsEnabled") and payment.get("subscriptionExpirationDate"):
+        if settings.get("isLifetimePlan"):
+            next_expiration = 253402214400000
+        elif settings.get("recurringPaymentsEnabled") and payment.get("subscriptionExpirationDate"):
             next_expiration = max(
                 payment["subscriptionExpirationDate"],
                 user.get("subscriptionUntil") or 0,
@@ -765,20 +769,23 @@ class JsonStore:
             def mutate(state):
                 balance_user = state["users"][normalized_id]
                 current_time_ms = int(time.time() * 1000)
-                base_time = (
-                    balance_user.get("subscriptionUntil")
-                    if balance_user.get("subscriptionUntil") and balance_user["subscriptionUntil"] > current_time_ms
-                    else current_time_ms
-                )
                 balance_user["balanceStars"] -= settings["subscriptionPriceStars"]
-                balance_user["subscriptionUntil"] = add_days(base_time, settings["subscriptionDurationDays"])
+                if settings.get("isLifetimePlan"):
+                    balance_user["subscriptionUntil"] = 253402214400000
+                else:
+                    base_time = (
+                        balance_user.get("subscriptionUntil")
+                        if balance_user.get("subscriptionUntil") and balance_user["subscriptionUntil"] > current_time_ms
+                        else current_time_ms
+                    )
+                    balance_user["subscriptionUntil"] = add_days(base_time, settings["subscriptionDurationDays"])
                 balance_user["lastWarningAt"] = None
                 balance_user["lastAccessGrantedAt"] = current_time_ms
                 balance_user["updatedAt"] = now_iso()
                 self._append_audit_entry(state, {
                     "type": "grant_subscription",
                     "userId": int(normalized_id),
-                    "days": settings["subscriptionDurationDays"],
+                    "days": settings["subscriptionDurationDays"] if not settings.get("isLifetimePlan") else None,
                     "reason": "balance_purchase"
                 })
 

@@ -1,4 +1,4 @@
-﻿# Telegram Paid Channel Bot
+# Telegram Paid Channel Bot
 
 Python-бот для продажи доступа в приватный Telegram-канал.
 
@@ -120,6 +120,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ## Что умеет бот
 
 - принимает оплату через Telegram Stars;
+- supports multiple payment plans with backward-compatible fallback to legacy price/duration settings;
 - активирует подписку после `successful_payment`;
 - выдаёт или обновляет invite-ссылку;
 - одобряет `chat_join_request` для активной подписки;

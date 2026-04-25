@@ -1,40 +1,42 @@
 from bot import logging_config
+from bot.services import plan_service
 
 def build_payment_payload(user_id):
     return f"subscription:{int(user_id)}"
 
 
 def parse_payment_payload(payload):
-    text = str(payload or "").strip()
-    prefix = "subscription:"
-    if not text.startswith(prefix):
+    parsed = plan_service.parse_plan_payload(payload)
+    if not parsed:
         return None
-
-    raw_user_id = text[len(prefix):].strip()
-    if not raw_user_id:
-        return None
-
-    try:
-        return int(raw_user_id)
-    except (TypeError, ValueError):
-        return None
+    return parsed["userId"]
 
 
-def handle_buy_access(app, user_id, chat_id=None, message_id=None):
+def handle_buy_access(app, user_id, chat_id=None, message_id=None, plan_id=None):
     settings = app.store.get_settings()
+    plan = plan_service.resolve_purchase_plan(settings, plan_id=plan_id)
+    if not plan:
+        app.send_main_menu(user_id, notice="Сейчас нет доступных тарифов.")
+        return None
+
     params = {
         "chat_id": user_id,
         "title": settings["subscriptionName"],
         "description": settings["subscriptionDescription"],
-        "payload": build_payment_payload(user_id),
+        "payload": plan_service.build_invoice_payload(settings, user_id, plan),
         "currency": "XTR",
-        "prices": [{"label": "Access", "amount": settings["subscriptionPriceStars"]}],
+        "prices": [{"label": plan["title"], "amount": plan["priceStars"]}],
     }
     return app.get_telegram().send_invoice(params)
 
 
 def handle_pre_checkout(app, pre_checkout_query):
-    is_valid = parse_payment_payload(pre_checkout_query.get("invoice_payload", "")) is not None
+    payload = pre_checkout_query.get("invoice_payload", "")
+    parsed = plan_service.parse_plan_payload(payload)
+    plan = None
+    if parsed:
+        plan = plan_service.resolve_purchase_plan(app.store.get_settings(), parsed.get("planId"))
+    is_valid = parsed is not None and plan is not None
     return app.get_telegram().answer_pre_checkout_query(
         pre_checkout_query["id"],
         is_valid,
@@ -45,6 +47,15 @@ def handle_pre_checkout(app, pre_checkout_query):
 def handle_successful_payment(app, message):
     successful_payment = message["successful_payment"]
     user_id = message["from"]["id"]
+    parsed = plan_service.parse_plan_payload(successful_payment["invoice_payload"])
+    if not parsed:
+        return {"status": "invalid_payload", "payment": None, "user": None}
+
+    settings = app.store.get_settings()
+    plan = plan_service.resolve_purchase_plan(settings, parsed.get("planId"))
+    if not plan:
+        return {"status": "plan_not_found", "payment": None, "user": None}
+
     payment = {
         "userId": user_id,
         "paidAt": int(app._now_ms()),
@@ -56,7 +67,7 @@ def handle_successful_payment(app, message):
     result = app.store.record_payment_and_activate_subscription(
         user_id,
         payment,
-        app.store.get_settings(),
+        plan_service.apply_plan_to_settings(settings, plan),
     )
     if result["status"] == "duplicate":
         logging_config.log_app_event(

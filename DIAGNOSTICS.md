@@ -2353,3 +2353,75 @@ Routing path:
 - empty db case is handled
 - duplicate payment policy is unchanged
 - manual recovery and payment anomalies remain unchanged
+# Roadmap Stage 6 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add multi-plan tariffs without breaking legacy payment payloads, existing user commands, or the current payment/access/admin policies.
+
+## New service
+
+Added:
+
+- `bot/services/plan_service.py`
+
+Current responsibilities:
+
+- normalize configured tariff entries from `settings["plans"]`
+- preserve fallback behavior through legacy `subscriptionPriceStars` and `subscriptionDurationDays`
+- parse both legacy and plan-aware payment payloads
+- resolve enabled plans for invoice and balance purchase flows
+- map plan-specific price/duration into store-compatible settings
+
+## Payment and payload compatibility
+
+Current policy:
+
+- legacy payload still works: `subscription:{user_id}`
+- plan-aware payload is now supported: `subscription:{user_id}:{plan_id}`
+- duplicate `telegramPaymentChargeId` behavior is unchanged and remains idempotent
+- processed payments still use `record_payment_and_activate_subscription(...)`
+- disabled plans are rejected in pre-checkout and are not sellable through user UI
+
+## User UI and routing
+
+Updated paths:
+
+- `bot/ui_user.py` now renders a tariff picker when more than one enabled plan is configured
+- `bot/handlers/user_actions.py` routes `buy:plan:{id}` and `buy_balance:plan:{id}` callbacks
+- `bot/services/payment_service.py` resolves plan price/duration before invoice and payment activation
+- `bot/app.py.send_invoice(...)` remains a backward-compatible wrapper and now accepts an optional `plan_id`
+
+Current behavior:
+
+- single-plan/fallback UX remains the same
+- multi-plan UX shows tariffs in settings order
+- balance purchase path uses the selected plan price and duration
+- lifetime plans are supported through the new plan normalization layer
+
+## Store compatibility
+
+Backward-compatible state changes:
+
+- `settings` now includes optional `plans: []` by default
+- legacy top-level settings remain the fallback source of truth when `plans` are absent
+- no existing payment fields were renamed or removed
+- no top-level `db.json` schema break was introduced
+
+## Tests added
+
+Added:
+
+- `tests/test_plan_service.py`
+- `tests/test_multi_plan_payment.py`
+
+Coverage added:
+
+- legacy payload parsing still works
+- plan-aware payload parsing works
+- disabled plans are not sold
+- price/duration are taken from the selected plan
+- duplicate plan payment does not extend subscription twice
+- tariff picker preserves configured plan order
+- balance purchase path uses the selected plan
+

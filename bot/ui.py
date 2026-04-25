@@ -9,11 +9,12 @@ from bot.ui_admin import (
     get_admin_user_details,
     get_admin_users,
 )
-from bot.ui_user import get_main_menu, get_user_help
+from bot.ui_user import get_main_menu, get_plan_picker, get_user_help
 
 
 class UIProvider:
     get_main_menu = staticmethod(get_main_menu)
+    get_plan_picker = staticmethod(get_plan_picker)
     get_user_help = staticmethod(get_user_help)
     get_admin_main = staticmethod(get_admin_main)
     get_admin_settings = staticmethod(get_admin_settings)
@@ -29,6 +30,7 @@ class UIProvider:
 __all__ = [
     "UIProvider",
     "get_main_menu",
+    "get_plan_picker",
     "get_user_help",
     "get_admin_main",
     "get_admin_settings",
