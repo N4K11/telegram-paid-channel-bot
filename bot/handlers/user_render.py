@@ -1,3 +1,4 @@
+from bot.services import subscription_view_service
 from bot.ui import UIProvider
 
 
@@ -47,7 +48,7 @@ def render_buy_invoice_notice(handler, user_id, callback_query=None, plan_id=Non
     return render_main_menu(
         handler,
         user_id,
-        notice="Счёт на оплату отправлен отдельным сообщением.",
+        notice=subscription_view_service.build_invoice_sent_notice(),
         callback_query=callback_query,
     )
 
@@ -62,10 +63,13 @@ def render_buy_balance_result(handler, user_id, result, callback_query=None):
         )
 
     handler.bot.approve_pending_request(user_id)
-    subscription_until = handler.bot.get_template_context(user_id)["subscriptionUntil"]
+    notice = subscription_view_service.build_balance_purchase_notice(
+        result.get("user") or {},
+        handler.bot.get_effective_system_settings()["appTimezone"],
+    )
     return render_main_menu(
         handler,
         user_id,
-        notice=f"✅ Подписка успешно оплачена с баланса и продлена до <b>{subscription_until}</b>.",
+        notice=notice,
         callback_query=callback_query,
     )

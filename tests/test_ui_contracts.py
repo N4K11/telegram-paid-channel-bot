@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import unittest
 from pathlib import Path
 
@@ -96,6 +96,51 @@ class UIContractsTests(unittest.TestCase):
             ],
         )
 
+    def test_user_main_menu_text_contract_for_inactive_user(self):
+        text, _ = UIProvider.get_main_menu(
+            {
+                "settings": {
+                    "subscriptionName": "Test Subscription",
+                    "welcomeText": "Welcome",
+                    "subscriptionPriceStars": 250,
+                    "subscriptionDurationDays": 30,
+                    "supportUsername": "support_manager",
+                },
+                "user": {"balanceStars": 0},
+                "is_active": False,
+                "effective_invite_link": "",
+                "system": {"appTimezone": "Europe/Saratov"},
+                "notice": None,
+                "is_admin": False,
+            }
+        )
+
+        self.assertIn("Статус: <b>не активна</b>.", text)
+        self.assertIn("После оплаты используйте кнопку «Получить ссылку»", text)
+
+    def test_user_main_menu_text_contract_for_active_user(self):
+        text, _ = UIProvider.get_main_menu(
+            {
+                "settings": {
+                    "subscriptionName": "Test Subscription",
+                    "welcomeText": "Welcome",
+                    "subscriptionPriceStars": 250,
+                    "subscriptionDurationDays": 30,
+                    "supportUsername": "support_manager",
+                },
+                "user": {"balanceStars": 0, "subscriptionUntil": 4102444800000},
+                "is_active": True,
+                "effective_invite_link": "https://t.me/+active_link",
+                "system": {"appTimezone": "Europe/Saratov"},
+                "notice": None,
+                "is_admin": False,
+            }
+        )
+
+        self.assertIn("Статус: <b>активна</b>", text)
+        self.assertIn("Осталось: <b>", text)
+        self.assertIn("Если вы ещё не в канале, нажмите «Открыть канал» ниже", text)
+
     def test_user_help_or_join_keyboard_contract(self):
         _, help_markup = UIProvider.get_user_help("support_manager")
         self.assertEqual(
@@ -114,7 +159,7 @@ class UIContractsTests(unittest.TestCase):
                     "subscriptionDurationDays": 30,
                     "supportUsername": "support_manager",
                 },
-                "user": {"balanceStars": 0, "subscriptionUntil": 123},
+                "user": {"balanceStars": 0, "subscriptionUntil": 4102444800000},
                 "is_active": True,
                 "effective_invite_link": "https://t.me/+active_link",
                 "system": {"appTimezone": "Europe/Saratov"},
@@ -129,6 +174,12 @@ class UIContractsTests(unittest.TestCase):
                 [("🔗 Открыть канал", None, "https://t.me/+active_link"), ("❓ Помощь", "user:help", None)],
             ],
         )
+
+    def test_user_help_text_contract(self):
+        text, _ = UIProvider.get_user_help("support_manager")
+        self.assertIn("Что делать после оплаты?", text)
+        self.assertIn("Если заявка уже отправлена?", text)
+        self.assertIn("@support_manager", text)
 
     def test_admin_main_menu_keyboard_contract(self):
         _, markup = UIProvider.get_admin_main(

@@ -1,12 +1,11 @@
-from utils_py import format_datetime
-
 from bot.services import plan_service
+from bot.services import subscription_view_service
 from bot.ui_common import callback_button, inline_keyboard, url_button
 
 
 def get_main_menu(context):
     settings = context["settings"]
-    user = context["user"]
+    user = context["user"] or {}
     is_active = context["is_active"]
     effective_invite_link = context["effective_invite_link"]
     enabled_plans = plan_service.get_enabled_plans(settings)
@@ -36,13 +35,7 @@ def get_main_menu(context):
         text.append("")
 
     text.append(f"Баланс: <b>{user.get('balanceStars', 0)} Stars</b>.")
-
-    if is_active:
-        text.append(
-            f"Доступ активен до <b>{format_datetime(user.get('subscriptionUntil'), context['system']['appTimezone'])}</b>."
-        )
-    else:
-        text.append("Подписка сейчас <b>не активна</b>.")
+    text.extend(subscription_view_service.build_main_menu_status_lines(context))
 
     if context.get("notice"):
         text.append(f"\n💡 {context['notice']}")
@@ -78,16 +71,9 @@ def get_main_menu(context):
 
 
 def get_user_help(support_username):
-    text = [
-        "<b>📖 Справка по боту</b>",
-        "",
-        "1. <b>Как купить доступ?</b> Нажмите кнопку «Купить доступ» и оплатите счёт через Telegram Stars.",
-        "2. <b>Как зайти в канал?</b> После оплаты появится кнопка «Открыть канал». Также вы можете нажать «Получить ссылку», если уже оплатили.",
-        "3. <b>Если не заходит?</b> Бот автоматически одобряет заявки. Если возникла проблема, напишите в поддержку.",
-        "",
-        f"По всем вопросам: @{support_username.lstrip('@')}" if support_username else "",
-    ]
-    return "\n".join(text), inline_keyboard([callback_button("🔙 Назад", "panel:main")])
+    return subscription_view_service.build_help_text(support_username), inline_keyboard(
+        [callback_button("🔙 Назад", "panel:main")]
+    )
 
 
 def get_plan_picker(settings, plans, purchase_mode="invoice", balance_stars=0):

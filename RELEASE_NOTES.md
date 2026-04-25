@@ -160,3 +160,22 @@ If deployment fails:
 7. Inspect `systemctl status` and `journalctl` before reopening access.
 
 Detailed operational steps remain in `DEPLOY_UBUNTU.md` and `RELEASE_CHECKLIST.md`.
+
+## Latest user UX polish
+
+This release also includes a small user-facing text polish while keeping the Telegram UI contract stable.
+
+What changed:
+
+- main menu now states whether the subscription is active or inactive more explicitly
+- active users see remaining access time in a clearer form
+- users now get clearer next-step guidance after payment
+- pending join-request cases now state that approval happens automatically after access is active
+
+What did not change:
+
+- callback data
+- button texts
+- button order
+- slash commands
+- payment payloads

@@ -1131,3 +1131,27 @@ Current store methods:
 
 - `tests/test_store_contract.py` runs the same core state/settings/user/payment/subscription scenarios against JSON and SQLite backends
 - contract suite also verifies JSON -> SQLite migration preserves core state and creates a backup
+
+## User UX polish map
+
+### New view service
+
+- `bot/services/subscription_view_service.py` centralizes user-facing subscription status copy.
+- main menu status lines now come from a single helper instead of being assembled ad hoc in `bot/ui_user.py`.
+- help text and purchase notices are also generated from the same service layer.
+
+### Current UX contract
+
+- existing user `callback_data` remain unchanged
+- button texts remain unchanged
+- button row order remains unchanged
+- user-visible copy is more explicit about:
+  - active/inactive subscription status
+  - remaining access time
+  - what to do after payment
+  - pending join request auto-approval
+
+### Contract coverage
+
+- `tests/test_subscription_view_service.py` covers status/help builders
+- `tests/test_ui_contracts.py` now also checks key user-facing text fragments in main menu and help view
