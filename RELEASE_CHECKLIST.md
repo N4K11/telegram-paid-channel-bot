@@ -21,6 +21,7 @@
 - [ ] `/start` works.
 - [ ] `/admin` works.
 - [ ] `/admin_channel_check` reports channel access and bot rights clearly.
+- [ ] `/admin_health` reports bot/runtime health clearly.
 - [ ] Admin stats opens.
 - [ ] Buy invoice opens.
 - [ ] Pre-checkout works if tested.

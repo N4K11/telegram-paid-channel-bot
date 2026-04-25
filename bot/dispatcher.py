@@ -101,6 +101,9 @@ def dispatch_admin_command(app, message, command, args):
     if command == "/admin_channel_check":
         return app.admin_handler._render_channel_diagnostics(chat_id)
 
+    if command == "/admin_health":
+        return app.admin_handler._render_health(chat_id)
+
     if command == "/admin_payment_anomalies":
         limit = _parse_limit_or_error(app, chat_id, args)
         if limit is None:

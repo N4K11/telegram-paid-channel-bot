@@ -793,3 +793,36 @@ Safety notes:
 - diagnostics do not create or rotate invite links
 - diagnostics do not modify `db.json`
 - formatted output redacts token-like strings and private invite links from error text
+
+## Healthcheck map
+
+### bot/services/health_service.py
+
+This module is read-only and does not import `bot.app`.
+
+Exported functions:
+
+- `get_health_status`
+- `format_health_status`
+
+Current direct admin entrypoint:
+
+- `/admin_health`
+
+Current healthcheck fields:
+
+- uptime from runtime start
+- bot username / id from stored `meta.botInfo` or `getMe`
+- channel configured flag
+- store writable check through a temp file next to `db.json`
+- `meta.lastUpdateId`
+- last maintenance run from runtime state
+- active / expired / pending user counts from store stats
+- backup directory existence
+- last logged runtime/API error from runtime state
+
+Safety notes:
+
+- healthcheck does not mutate store state
+- writable probe uses a temporary file and removes it immediately
+- formatted output redacts token-like strings and private invite links from error text

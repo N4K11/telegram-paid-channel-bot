@@ -65,6 +65,7 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - `/admin_refresh_invite`
 - `/admin_broadcast`
 - `/admin_channel_check`
+- `/admin_health`
 - `/admin_payment_diag <user_id>`
 - `/admin_recover_payment <user_id> <days> <reason>`
 - `/admin_payment_anomalies`

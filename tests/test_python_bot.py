@@ -340,6 +340,7 @@ class RuntimeSmokeTests(unittest.TestCase):
         readme = Path("README.md").read_text(encoding="utf-8-sig")
         supported_direct_commands = {
             "/admin",
+            "/admin_health",
             "/admin_login <username> <password>",
             "/admin_logout",
             "/admin_stats",

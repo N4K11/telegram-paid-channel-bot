@@ -2160,3 +2160,59 @@ Added read-only client method:
 - `telegram_client.py` -> `get_chat_member(chat_id, user_id)`
 
 This is used only for diagnostics in this stage.
+
+# Roadmap Stage 2 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add an admin-only `/admin_health` command so the current bot/runtime state can be inspected directly from Telegram without changing store data or Telegram-visible behavior.
+
+## New read-only health path
+
+Added service:
+
+- `bot/services/health_service.py`
+
+Exported functions:
+
+- `get_health_status(app)`
+- `format_health_status(status)`
+
+Current health output includes:
+
+- uptime since `SubscriptionBotApp` start
+- bot username / id if available
+- channel configured yes/no
+- store writable yes/no via a temporary file next to `db.json`
+- `lastUpdateId`
+- last maintenance run timestamp
+- active / expired / pending user counts
+- backup directory existence
+- last logged runtime/API error
+
+## Minimal runtime state additions
+
+Added runtime-only fields on `SubscriptionBotApp`:
+
+- `started_at_ms`
+- `last_runtime_error`
+- `last_maintenance_run_at`
+
+These are in-memory only and do not change `db.json` schema.
+
+## Admin routing
+
+Added direct admin command:
+
+- `/admin_health`
+
+Routing path:
+
+- `bot/dispatcher.py` -> `AdminHandler._render_health(...)`
+- `bot/handlers/admin_render.py` -> `health_service`
+
+## Safety notes
+
+- healthcheck is read-only for store state
+- writable probe creates and removes a temp file in the store directory
+- formatted output redacts token-like strings and private invite links from runtime errors

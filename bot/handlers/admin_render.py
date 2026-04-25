@@ -1,6 +1,7 @@
 import time
 
 from bot.services import channel_diagnostics_service
+from bot.services import health_service
 from bot.ui import UIProvider
 from utils_py import format_user_name, parse_integer
 
@@ -91,6 +92,12 @@ def render_stats(handler, user_id):
 def render_channel_diagnostics(handler, user_id):
     diagnostics = channel_diagnostics_service.run_channel_diagnostics(handler.bot)
     text = channel_diagnostics_service.format_channel_diagnostics(diagnostics)
+    handler.bot.get_telegram().send_message(user_id, text)
+
+
+def render_health(handler, user_id):
+    status = health_service.get_health_status(handler.bot)
+    text = health_service.format_health_status(status, handler.bot.config.app_timezone)
     handler.bot.get_telegram().send_message(user_id, text)
 
 

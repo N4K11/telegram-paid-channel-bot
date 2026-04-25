@@ -81,6 +81,7 @@ class AdminHandlerTests(unittest.TestCase):
         app = self.make_app()
         expected = {
             "/admin",
+            "/admin_health",
             "/admin_login",
             "/admin_logout",
             "/admin_payment_diag",

@@ -19,7 +19,7 @@ class SubscriptionBotApp:
         '/admin_balance', '/admin_approve', '/admin_message', '/admin_note', 
         '/admin_broadcast', '/admin_refresh_invite', '/admin_setup_channel',
         '/admin_payment_diag', '/admin_recover_payment', '/admin_payment_anomalies',
-        '/admin_channel_check'
+        '/admin_channel_check', '/admin_health'
     }
     ALLOWED_UPDATES = ["message", "callback_query", "pre_checkout_query", "chat_join_request", "chat_member"]
     JOIN_REQUEST_TTL_MS = 7 * 24 * 3600 * 1000
@@ -36,6 +36,9 @@ class SubscriptionBotApp:
         self.is_stopping = False
         self.authorized_admin_user_ids = set()
         self.fsm = FSM()
+        self.started_at_ms = int(self._now_ms())
+        self.last_runtime_error = None
+        self.last_maintenance_run_at = None
 
         # --- Handler facades ---
         self.admin_handler = AdminHandler(self)
@@ -82,8 +85,12 @@ class SubscriptionBotApp:
     def _now_ms():
         return time.time() * 1000
 
-    @staticmethod
-    def _log_error(context, error):
+    def _log_error(self, context, error):
+        self.last_runtime_error = {
+            "context": str(context or "").strip(),
+            "error": str(error or "").strip(),
+            "loggedAt": int(self._now_ms()),
+        }
         print(f"{context}: {error}", flush=True)
 
     def _ensure_user_context(self, user_info):
@@ -372,7 +379,9 @@ class SubscriptionBotApp:
         )
 
     def run_subscription_maintenance(self):
-        return maintenance_service.run_subscription_maintenance(self)
+        result = maintenance_service.run_subscription_maintenance(self)
+        self.last_maintenance_run_at = int(self._now_ms())
+        return result
 
     # --- Compatibility wrappers ---
 

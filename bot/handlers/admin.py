@@ -51,6 +51,9 @@ class AdminHandler:
     def _render_channel_diagnostics(self, user_id):
         return admin_render.render_channel_diagnostics(self, user_id)
 
+    def _render_health(self, user_id):
+        return admin_render.render_health(self, user_id)
+
     def _render_payment_diagnostics(self, user_id, target_id, notice=None):
         return admin_render.render_payment_diagnostics(self, user_id, target_id, notice=notice)
 
