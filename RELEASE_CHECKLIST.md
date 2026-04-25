@@ -20,6 +20,7 @@
 - [ ] `journalctl` shows no critical errors.
 - [ ] `/start` works.
 - [ ] `/admin` works.
+- [ ] `/admin_channel_check` reports channel access and bot rights clearly.
 - [ ] Admin stats opens.
 - [ ] Buy invoice opens.
 - [ ] Pre-checkout works if tested.

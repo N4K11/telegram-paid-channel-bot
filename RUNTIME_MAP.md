@@ -62,6 +62,7 @@ Current direct admin commands handled by `handle_admin_command`:
 - `/admin`
 - `/admin_login`
 - `/admin_logout`
+- `/admin_channel_check`
 - `/admin_stats`
 - `/admin_settings`
 - `/admin_users`
@@ -761,3 +762,34 @@ Added `tests/test_runtime_shell.py` to cover:
 - no runtime logic was changed for stage 24;
 - backup and rollback remain operational procedures, not automatic runtime behavior;
 - release docs avoid production tokens and Windows-only path assumptions.
+
+## Channel diagnostics map
+
+### bot/services/channel_diagnostics_service.py
+
+This module is read-only and does not import `bot.app`.
+
+Exported functions:
+
+- `run_channel_diagnostics`
+- `format_channel_diagnostics`
+
+Current direct admin entrypoint:
+
+- `/admin_channel_check`
+
+Current diagnostics checks:
+
+- `CHANNEL_ID` configured and readable from effective settings
+- bot identity available through `getMe`
+- bot membership/access status in the configured channel through `getChatMember`
+- admin status
+- `can_invite_users` for invite-link and join-request approval flow
+- `can_restrict_members` for revoke flow
+- manual invite configured vs auto-create invite enabled
+
+Safety notes:
+
+- diagnostics do not create or rotate invite links
+- diagnostics do not modify `db.json`
+- formatted output redacts token-like strings and private invite links from error text

@@ -18,7 +18,8 @@ class SubscriptionBotApp:
         '/admin_user', '/admin_create_user', '/admin_grant', '/admin_revoke', 
         '/admin_balance', '/admin_approve', '/admin_message', '/admin_note', 
         '/admin_broadcast', '/admin_refresh_invite', '/admin_setup_channel',
-        '/admin_payment_diag', '/admin_recover_payment', '/admin_payment_anomalies'
+        '/admin_payment_diag', '/admin_recover_payment', '/admin_payment_anomalies',
+        '/admin_channel_check'
     }
     ALLOWED_UPDATES = ["message", "callback_query", "pre_checkout_query", "chat_join_request", "chat_member"]
     JOIN_REQUEST_TTL_MS = 7 * 24 * 3600 * 1000

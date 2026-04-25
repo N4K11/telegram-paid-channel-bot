@@ -98,6 +98,9 @@ def dispatch_admin_command(app, message, command, args):
             return app.get_telegram().send_message(chat_id, "Использование: /admin_payment_diag USER_ID")
         return app.admin_handler._render_payment_diagnostics(chat_id, target_id)
 
+    if command == "/admin_channel_check":
+        return app.admin_handler._render_channel_diagnostics(chat_id)
+
     if command == "/admin_payment_anomalies":
         limit = _parse_limit_or_error(app, chat_id, args)
         if limit is None:

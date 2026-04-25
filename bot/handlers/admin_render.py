@@ -1,5 +1,6 @@
 import time
 
+from bot.services import channel_diagnostics_service
 from bot.ui import UIProvider
 from utils_py import format_user_name, parse_integer
 
@@ -85,6 +86,12 @@ def render_stats(handler, user_id):
     ]
     markup = {"inline_keyboard": [[{"text": "🔙 Назад", "callback_data": "admin:menu"}]]}
     handler.bot.render_panel(user_id, "\n".join(text), markup, "admin:stats")
+
+
+def render_channel_diagnostics(handler, user_id):
+    diagnostics = channel_diagnostics_service.run_channel_diagnostics(handler.bot)
+    text = channel_diagnostics_service.format_channel_diagnostics(diagnostics)
+    handler.bot.get_telegram().send_message(user_id, text)
 
 
 def render_payment_diagnostics(handler, user_id, target_id, notice=None):

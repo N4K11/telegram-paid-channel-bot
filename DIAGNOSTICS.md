@@ -2102,3 +2102,61 @@ Coverage includes:
 - script presence and POSIX-friendly content
 - no absolute production path in backup script
 - no real-looking Telegram token in release-facing docs/scripts
+
+# Roadmap Stage 1 Diagnostics
+
+## Scope
+
+Goal of this roadmap stage: add an admin-only `/admin_channel_check` command so the current production issue around channel access can be diagnosed directly from Telegram without speculative recovery or side effects.
+
+## Current problem being addressed
+
+Observed on the Ubuntu server after deployment:
+
+- `Telegram API error at createChatInviteLink: Forbidden: bot was kicked from the channel chat`
+
+## New read-only diagnostics path
+
+Added service:
+
+- `bot/services/channel_diagnostics_service.py`
+
+Exported functions:
+
+- `run_channel_diagnostics(app)`
+- `format_channel_diagnostics(result)`
+
+Current behavior:
+
+- reads effective `CHANNEL_ID` from runtime settings/config
+- fetches bot identity via `getMe`
+- checks bot membership and admin rights via `getChatMember`
+- reports:
+  - channel configured or not
+  - bot access status
+  - admin status
+  - `can_invite_users`
+  - `can_restrict_members`
+  - manual invite configured vs auto-create invite enabled
+- does not create invite links
+- does not mutate store state
+- redacts token-like strings and private invite links from error output
+
+## Admin routing
+
+Added direct admin command:
+
+- `/admin_channel_check`
+
+Routing path:
+
+- `bot/dispatcher.py` -> `AdminHandler._render_channel_diagnostics(...)`
+- `bot/handlers/admin_render.py` uses the diagnostics service and sends a read-only Telegram message
+
+## Telegram transport addition
+
+Added read-only client method:
+
+- `telegram_client.py` -> `get_chat_member(chat_id, user_id)`
+
+This is used only for diagnostics in this stage.

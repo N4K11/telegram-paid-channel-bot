@@ -186,6 +186,15 @@ class TelegramClient:
             },
         )
 
+    def get_chat_member(self, chat_id, user_id):
+        return self.call(
+            "getChatMember",
+            {
+                "chat_id": chat_id,
+                "user_id": user_id,
+            },
+        )
+
     def approve_chat_join_request(self, chat_id, user_id):
         return self.call(
             "approveChatJoinRequest",
